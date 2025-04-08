@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Bell, Settings, LogOut, Menu } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useNavigate } from "react-router-dom";
+import { useNotifications } from "@/hooks/useNotifications";
 
 interface HeaderProps {
   collapsed: boolean;
@@ -21,7 +22,7 @@ interface HeaderProps {
 export function Header({ collapsed, setCollapsed }: HeaderProps) {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
-  const [notifications] = useState<string[]>([]); // This will be populated with actual notifications later
+  const { notifications } = useNotifications();
 
   // Get the user's initials from their email or name
   const getInitials = () => {
@@ -66,15 +67,40 @@ export function Header({ collapsed, setCollapsed }: HeaderProps) {
               <Button variant="ghost" size="icon" className="relative">
                 <Bell className="h-5 w-5" />
                 {notifications.length > 0 && (
-                  <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-red-500"></span>
+                  <span className="absolute right-1 top-1 h-4 w-4 rounded-full bg-red-500 flex items-center justify-center text-[10px] text-white font-medium">
+                    {notifications.length}
+                  </span>
                 )}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64">
+            <DropdownMenuContent align="end" className="w-80">
+              <div className="px-3 py-2 font-medium border-b">
+                Notifications
+              </div>
               {notifications.length > 0 ? (
-                notifications.map((notification, index) => (
-                  <DropdownMenuItem key={index}>{notification}</DropdownMenuItem>
-                ))
+                <div className="max-h-[300px] overflow-y-auto">
+                  {notifications.map((notification, index) => (
+                    <DropdownMenuItem 
+                      key={index}
+                      className="py-3 px-3 cursor-pointer flex flex-col items-start"
+                      onClick={() => {
+                        if (notification.type === 'proposal') {
+                          navigate('/proposals');
+                        } else {
+                          navigate('/invoices');
+                        }
+                      }}
+                    >
+                      <div className="font-medium">{notification.title}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {notification.type === 'proposal' ? 'Follow-up' : 'Payment'} due: {notification.date}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        Client: {notification.client}
+                      </div>
+                    </DropdownMenuItem>
+                  ))}
+                </div>
               ) : (
                 <div className="py-4 text-center text-muted-foreground">
                   No new notifications
@@ -86,7 +112,7 @@ export function Header({ collapsed, setCollapsed }: HeaderProps) {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center gap-2 px-2">
-                <Avatar className="h-8 w-8 bg-closevia-600 text-white">
+                <Avatar className="h-8 w-8 bg-slate-200 text-slate-700 border border-slate-300">
                   <AvatarFallback>{getInitials()}</AvatarFallback>
                 </Avatar>
                 <span className="hidden font-medium text-sm md:inline-block">
