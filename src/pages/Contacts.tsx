@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase, Contact } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
@@ -64,6 +63,7 @@ const ContactsPage = () => {
         company: selectedContact.company,
         email: selectedContact.email,
         phone: selectedContact.phone,
+        company_website: selectedContact.company_website || "",
         last_interaction: selectedContact.last_interaction,
       });
     }
@@ -164,22 +164,21 @@ const ContactsPage = () => {
 
     try {
       setIsEditingContact(true);
-      console.log("Updating contact with data:", {
-        ...editedContact,
+      
+      const updateData = {
+        name: editedContact.name,
+        company: editedContact.company,
+        email: editedContact.email,
+        phone: editedContact.phone,
         company_website: editedContact.company_website,
-        last_interaction: lastInteractionDate ? lastInteractionDate.toISOString() : null
-      });
+        last_interaction: lastInteractionDate ? lastInteractionDate.toISOString() : null,
+      };
+      
+      console.log("Updating contact with data:", updateData);
       
       const { error } = await supabase
         .from("contacts")
-        .update({
-          name: editedContact.name,
-          company: editedContact.company,
-          email: editedContact.email,
-          phone: editedContact.phone,
-          company_website: editedContact.company_website,
-          last_interaction: lastInteractionDate ? lastInteractionDate.toISOString() : null,
-        })
+        .update(updateData)
         .eq("id", selectedContact.id);
 
       if (error) throw error;
@@ -188,18 +187,14 @@ const ContactsPage = () => {
         contact.id === selectedContact.id 
           ? { 
               ...contact, 
-              ...editedContact, 
-              company_website: editedContact.company_website,
-              last_interaction: lastInteractionDate ? lastInteractionDate.toISOString() : null 
+              ...updateData
             }
           : contact
       ));
       
       setSelectedContact({
         ...selectedContact,
-        ...editedContact,
-        company_website: editedContact.company_website,
-        last_interaction: lastInteractionDate ? lastInteractionDate.toISOString() : null
+        ...updateData
       });
       
       toast.success("Contact updated successfully");
