@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Trash2 } from "lucide-react";
@@ -30,15 +30,35 @@ const ContactComments = ({
   onAddComment,
   onDeleteComment
 }: ContactCommentsProps) => {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Handle successful comment submission by focusing back on the textarea
+  useEffect(() => {
+    if (!isLoading && newComment === "" && comments.length > 0) {
+      // Focus back on the textarea after comment is added
+      textareaRef.current?.focus();
+    }
+  }, [comments.length, isLoading, newComment]);
+
+  // Handle Enter key for faster comment submission
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey && newComment.trim()) {
+      e.preventDefault(); // Prevent new line
+      onAddComment();
+    }
+  };
+
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-medium">Comments</h3>
       
       <div className="flex gap-2">
         <Textarea
+          ref={textareaRef}
           placeholder="Add a comment..."
           value={newComment}
           onChange={onCommentChange}
+          onKeyDown={handleKeyDown}
           className="flex-1"
         />
         <Button 

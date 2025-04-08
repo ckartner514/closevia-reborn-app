@@ -49,6 +49,11 @@ const ContactDetails = ({
   onAddComment,
   onDeleteComment
 }: ContactDetailsProps) => {
+  // Memoize the comment change handler to prevent re-creation on each render
+  const handleCommentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    onCommentChange(e);
+  };
+
   return (
     <>
       <div className="space-y-4">
@@ -131,7 +136,7 @@ const ContactDetails = ({
           comments={comments}
           newComment={newComment}
           isLoading={commentLoading}
-          onCommentChange={onCommentChange}
+          onCommentChange={handleCommentChange}
           onAddComment={onAddComment}
           onDeleteComment={onDeleteComment}
         />
