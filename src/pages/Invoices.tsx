@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { format, parseISO, isWithinInterval } from "date-fns";
 import { toast } from "sonner";
 import { DateRange } from "react-day-picker";
+import { useLocation } from "react-router-dom";
 
 // Import custom components
 import { InvoiceHeader } from "@/components/invoices/InvoiceHeader";
@@ -28,6 +29,7 @@ import { useInvoices } from "@/hooks/useInvoices";
 
 const InvoicesPage = () => {
   const { user } = useAuth();
+  const location = useLocation();
   const { 
     invoices, 
     loading, 
@@ -45,6 +47,35 @@ const InvoicesPage = () => {
   const [dateOpen, setDateOpen] = useState(false);
   const [invoiceToDelete, setInvoiceToDelete] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [highlightedInvoiceId, setHighlightedInvoiceId] = useState<string | null>(null);
+  
+  // Handle URL query parameters for highlighting specific invoices
+  useEffect(() => {
+    const query = new URLSearchParams(location.search);
+    const invoiceId = query.get('highlightInvoice');
+    
+    if (invoiceId) {
+      setHighlightedInvoiceId(invoiceId);
+      
+      // Scroll to highlighted invoice after a short delay to ensure it's rendered
+      setTimeout(() => {
+        const invoiceElement = document.getElementById(`invoice-${invoiceId}`);
+        if (invoiceElement) {
+          invoiceElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          
+          // Add highlight effect
+          invoiceElement.classList.add('bg-accent');
+          setTimeout(() => {
+            invoiceElement.classList.remove('bg-accent');
+            invoiceElement.classList.add('transition-colors', 'duration-1000');
+          }, 100);
+        }
+        
+        // Clear the highlight after navigating
+        window.history.replaceState({}, document.title, '/invoices');
+      }, 500);
+    }
+  }, [location.search, invoices]);
   
   useEffect(() => {
     if (!user) return;
@@ -191,6 +222,7 @@ const InvoicesPage = () => {
             invoices={filteredInvoices} 
             onStatusChange={handleStatusChange}
             onDeleteInvoice={onDeleteClick}
+            highlightedInvoiceId={highlightedInvoiceId}
           />
         </>
       ) : (

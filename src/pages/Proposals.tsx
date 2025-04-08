@@ -1,6 +1,6 @@
 
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Dialog } from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -26,10 +26,12 @@ import {
 const ProposalsPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [selectedProposal, setSelectedProposal] = useState<ProposalWithContact | null>(null);
   const [proposalToDelete, setProposalToDelete] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   
   const {
     proposals,
@@ -42,6 +44,23 @@ const ProposalsPage = () => {
     handleConvertToInvoice,
     deleteProposal
   } = useProposals(user?.id);
+
+  // Handle query parameter for opening a specific proposal
+  useEffect(() => {
+    const query = new URLSearchParams(location.search);
+    const proposalId = query.get('openProposal');
+    
+    if (proposalId && proposals.length > 0) {
+      const proposal = proposals.find(p => p.id === proposalId);
+      if (proposal) {
+        setSelectedProposal(proposal);
+        setIsDetailsOpen(true);
+        
+        // Remove the query parameter after opening
+        navigate('/proposals', { replace: true });
+      }
+    }
+  }, [location.search, proposals, navigate]);
 
   const handleCreateNewProposal = () => {
     navigate("/create");
@@ -106,12 +125,19 @@ const ProposalsPage = () => {
           onCreateNew={handleCreateNewProposal} 
         />
       ) : (
-        <Dialog onOpenChange={(open) => {
-          if (!open) setSelectedProposal(null);
-        }}>
+        <Dialog 
+          open={isDetailsOpen} 
+          onOpenChange={(open) => {
+            setIsDetailsOpen(open);
+            if (!open) setSelectedProposal(null);
+          }}
+        >
           <ProposalTable
             proposals={filteredProposals}
-            onSelectProposal={setSelectedProposal}
+            onSelectProposal={(proposal) => {
+              setSelectedProposal(proposal);
+              setIsDetailsOpen(true);
+            }}
             onDeleteProposal={onDeleteClick}
           />
           

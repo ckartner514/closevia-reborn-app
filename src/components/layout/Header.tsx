@@ -22,7 +22,7 @@ interface HeaderProps {
 export function Header({ collapsed, setCollapsed }: HeaderProps) {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
-  const notifications = useNotifications();
+  const { notifications, markAsViewed, unviewedCount } = useNotifications();
 
   // Get the user's initials from their email or name
   const getInitials = () => {
@@ -42,6 +42,19 @@ export function Header({ collapsed, setCollapsed }: HeaderProps) {
 
   const toggleSidebar = () => {
     setCollapsed(!collapsed);
+  };
+
+  const handleNotificationClick = (notification: any) => {
+    // Mark the notification as viewed
+    markAsViewed(notification.id);
+    
+    if (notification.type === 'proposal') {
+      // Navigate to proposals page with a query parameter to open the specific proposal
+      navigate(`/proposals?openProposal=${notification.id}`);
+    } else {
+      // Navigate to invoices page with a query parameter to highlight the specific invoice
+      navigate(`/invoices?highlightInvoice=${notification.id}`);
+    }
   };
 
   return (
@@ -66,9 +79,9 @@ export function Header({ collapsed, setCollapsed }: HeaderProps) {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="relative">
                 <Bell className="h-5 w-5" />
-                {notifications.length > 0 && (
+                {unviewedCount > 0 && (
                   <span className="absolute right-1 top-1 h-4 w-4 rounded-full bg-red-500 flex items-center justify-center text-[10px] text-white font-medium">
-                    {notifications.length}
+                    {unviewedCount}
                   </span>
                 )}
               </Button>
@@ -82,14 +95,8 @@ export function Header({ collapsed, setCollapsed }: HeaderProps) {
                   {notifications.map((notification, index) => (
                     <DropdownMenuItem 
                       key={index}
-                      className="py-3 px-3 cursor-pointer flex flex-col items-start"
-                      onClick={() => {
-                        if (notification.type === 'proposal') {
-                          navigate('/proposals');
-                        } else {
-                          navigate('/invoices');
-                        }
-                      }}
+                      className={`py-3 px-3 cursor-pointer flex flex-col items-start ${notification.viewed ? 'opacity-70' : ''}`}
+                      onClick={() => handleNotificationClick(notification)}
                     >
                       <div className="font-medium">{notification.title}</div>
                       <div className="text-sm text-muted-foreground">

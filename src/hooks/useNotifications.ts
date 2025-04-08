@@ -12,11 +12,13 @@ export interface NotificationItem {
     name: string;
   };
   type: "proposal" | "invoice";
+  viewed: boolean; // Track if notification has been viewed
 }
 
-export const useNotifications = (): NotificationItem[] => {
+export const useNotifications = () => {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
-
+  
+  // Fetch notifications on component mount
   useEffect(() => {
     const fetchNotifications = async () => {
       const today = new Date();
@@ -37,6 +39,9 @@ export const useNotifications = (): NotificationItem[] => {
         return;
       }
 
+      // Check for viewed notifications in local storage
+      const viewedNotifications = JSON.parse(localStorage.getItem('viewedNotifications') || '{}');
+
       const proposalNotifications: NotificationItem[] =
         (proposals || [])
           .filter((deal) => deal.due_date && isBefore(new Date(deal.due_date), today))
@@ -48,6 +53,7 @@ export const useNotifications = (): NotificationItem[] => {
               ? (deal.contact[0] as { id: string; name: string })
               : (deal.contact as { id: string; name: string }),
             type: "proposal",
+            viewed: Boolean(viewedNotifications[deal.id])
           }));
 
       const invoiceNotifications: NotificationItem[] =
@@ -61,6 +67,7 @@ export const useNotifications = (): NotificationItem[] => {
               ? (deal.contact[0] as { id: string; name: string })
               : (deal.contact as { id: string; name: string }),
             type: "invoice",
+            viewed: Boolean(viewedNotifications[deal.id])
           }));
 
       setNotifications([...proposalNotifications, ...invoiceNotifications]);
@@ -69,5 +76,21 @@ export const useNotifications = (): NotificationItem[] => {
     fetchNotifications();
   }, []);
 
-  return notifications;
+  // Mark a notification as viewed
+  const markAsViewed = (notificationId: string) => {
+    // Update local state
+    setNotifications(prev => prev.map(notification => 
+      notification.id === notificationId ? { ...notification, viewed: true } : notification
+    ));
+    
+    // Store in local storage to persist across sessions
+    const viewedNotifications = JSON.parse(localStorage.getItem('viewedNotifications') || '{}');
+    viewedNotifications[notificationId] = true;
+    localStorage.setItem('viewedNotifications', JSON.stringify(viewedNotifications));
+  };
+
+  // Get count of unviewed notifications
+  const unviewedCount = notifications.filter(notification => !notification.viewed).length;
+
+  return { notifications, markAsViewed, unviewedCount };
 };
