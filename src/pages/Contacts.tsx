@@ -251,6 +251,31 @@ const ContactsPage = () => {
     }
   };
 
+  const handleDeleteContact = async (contactId: string) => {
+    try {
+      const { error } = await supabase
+        .from("contacts")
+        .delete()
+        .eq("id", contactId);
+
+      if (error) throw error;
+      
+      setContacts(contacts.filter(contact => contact.id !== contactId));
+      
+      if (selectedContact && selectedContact.id === contactId) {
+        setSelectedContact(null);
+        if (isMobile) {
+          setContactDrawerOpen(false);
+        }
+      }
+      
+      toast.success("Contact deleted successfully");
+    } catch (error) {
+      console.error("Error deleting contact:", error);
+      toast.error("Failed to delete contact");
+    }
+  };
+
   const handleContactSelect = (contact: Contact) => {
     setSelectedContact(contact);
     if (isMobile) {
@@ -295,6 +320,7 @@ const ContactsPage = () => {
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         onContactSelect={handleContactSelect}
+        onDeleteContact={handleDeleteContact}
       />
       
       {selectedContact && !isMobile && (

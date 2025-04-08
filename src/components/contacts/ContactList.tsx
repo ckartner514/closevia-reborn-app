@@ -87,7 +87,7 @@ const ContactList = ({
                 <TableHead className="hidden md:table-cell">Email</TableHead>
                 <TableHead className="hidden md:table-cell">Phone</TableHead>
                 <TableHead>Last Interaction</TableHead>
-                {onDeleteContact && <TableHead className="w-10"></TableHead>}
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -120,8 +120,8 @@ const ContactList = ({
                       ? format(parseISO(contact.last_interaction), "PP") 
                       : "Not set"}
                   </TableCell>
-                  {onDeleteContact && (
-                    <TableCell className="p-2 text-right">
+                  <TableCell className="text-right">
+                    {onDeleteContact && (
                       <Button
                         variant="ghost"
                         size="icon"
@@ -133,8 +133,8 @@ const ContactList = ({
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
-                    </TableCell>
-                  )}
+                    )}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
