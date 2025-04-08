@@ -1,7 +1,6 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/lib/supabase";
 import { Loader2, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
@@ -13,20 +12,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-
-// Define types for team members and organization
-type TeamMember = {
-  id: string;
-  email: string;
-  full_name: string;
-  role: string;
-};
-
-type CurrentOrgInfo = {
-  id: string;
-  name: string;
-  userRole: string;
-};
+import { useTeamMembers } from "@/hooks/useTeamMembers";
 
 const InviteFormSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -37,10 +23,8 @@ const InviteFormSchema = z.object({
 
 export function TeamMembers() {
   const { user } = useAuth();
-  const [members, setMembers] = useState<TeamMember[]>([]);
-  const [loading, setLoading] = useState(true);
   const [inviting, setInviting] = useState(false);
-  const [currentOrg, setCurrentOrg] = useState<CurrentOrgInfo | null>(null);
+  const { members, loading, currentOrg, inviteMember } = useTeamMembers(user);
 
   const form = useForm<z.infer<typeof InviteFormSchema>>({
     resolver: zodResolver(InviteFormSchema),
@@ -50,138 +34,15 @@ export function TeamMembers() {
     },
   });
 
-  // Fetch the current organization and user's role
-  useEffect(() => {
-    if (!user) return;
-    
-    const fetchOrgAndRole = async () => {
-      try {
-        const { data: userOrg, error: userOrgError } = await supabase
-          .from("user_organizations")
-          .select(`
-            role,
-            org_id,
-            organizations (
-              id,
-              name
-            )
-          `)
-          .eq("user_id", user.id)
-          .single();
-
-        if (userOrgError) throw userOrgError;
-        
-        if (userOrg) {
-          setCurrentOrg({
-            id: userOrg.organizations.id,
-            name: userOrg.organizations.name,
-            userRole: userOrg.role
-          });
-        }
-      } catch (error) {
-        console.error("Error fetching organization info:", error);
-      }
-    };
-
-    fetchOrgAndRole();
-  }, [user]);
-
-  // Fetch all members of the current organization
-  useEffect(() => {
-    if (!currentOrg) return;
-    
-    const fetchMembers = async () => {
-      try {
-        setLoading(true);
-        
-        const { data, error } = await supabase
-          .from("user_organizations")
-          .select(`
-            role,
-            user_id,
-            auth.users (
-              email
-            ),
-            profiles (
-              full_name
-            )
-          `)
-          .eq("org_id", currentOrg.id);
-
-        if (error) throw error;
-
-        const formattedMembers = data.map((item) => ({
-          id: item.user_id,
-          email: item.users.email,
-          full_name: item.profiles?.full_name || "",
-          role: item.role
-        }));
-        
-        setMembers(formattedMembers);
-      } catch (error) {
-        console.error("Error fetching team members:", error);
-        toast.error("Failed to load team members");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchMembers();
-  }, [currentOrg]);
-
   const handleInvite = async (values: z.infer<typeof InviteFormSchema>) => {
     if (!currentOrg) return;
     
     try {
       setInviting(true);
-      
-      // Check if user is already a member
-      const { data: existingMember, error: checkError } = await supabase
-        .from("user_organizations")
-        .select("id, user_id")
-        .eq("org_id", currentOrg.id)
-        .eq("user_id", (await supabase.from("auth.users").select("id").eq("email", values.email).single()).data?.id)
-        .maybeSingle();
-      
-      if (checkError && checkError.code !== "PGRST116") throw checkError;
-      
-      if (existingMember) {
-        toast.error("This user is already a member of your organization");
-        return;
+      const success = await inviteMember(values.email, values.role as "admin" | "viewer");
+      if (success) {
+        form.reset();
       }
-      
-      // Check if invitation already exists
-      const { data: existingInvite, error: inviteCheckError } = await supabase
-        .from("invitations")
-        .select("id")
-        .eq("org_id", currentOrg.id)
-        .eq("email", values.email)
-        .eq("accepted", false)
-        .maybeSingle();
-        
-      if (inviteCheckError && inviteCheckError.code !== "PGRST116") throw inviteCheckError;
-      
-      if (existingInvite) {
-        toast.error("An invitation has already been sent to this email");
-        return;
-      }
-      
-      // Create the invitation
-      const { error: inviteError } = await supabase
-        .from("invitations")
-        .insert({
-          email: values.email,
-          org_id: currentOrg.id,
-          role: values.role
-        });
-        
-      if (inviteError) throw inviteError;
-      
-      toast.success("Invitation sent successfully");
-      form.reset();
-    } catch (error) {
-      console.error("Error sending invitation:", error);
-      toast.error("Failed to send invitation");
     } finally {
       setInviting(false);
     }

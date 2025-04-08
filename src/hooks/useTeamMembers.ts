@@ -76,19 +76,37 @@ export const useTeamMembers = (user: User | null) => {
         
         // Then get user details from profiles
         const memberPromises = orgUsers.map(async (orgUser) => {
-          // Get email (we need to query auth directly)
-          const { data: userData } = await supabase.auth.admin.getUserById(orgUser.user_id);
+          // Get email from auth.users table
+          const { data: userData, error: userError } = await supabase
+            .from("auth.users")
+            .select("email")
+            .eq("id", orgUser.user_id)
+            .single();
+            
+          if (userError) {
+            console.error("Error fetching user email:", userError);
+            return {
+              id: orgUser.user_id,
+              email: "Unknown email",
+              full_name: "",
+              role: orgUser.role
+            };
+          }
           
           // Get profile data
-          const { data: profileData } = await supabase
+          const { data: profileData, error: profileError } = await supabase
             .from("profiles")
             .select("full_name")
             .eq("id", orgUser.user_id)
             .single();
             
+          if (profileError && profileError.code !== "PGRST116") {
+            console.error("Error fetching profile:", profileError);
+          }
+            
           return {
             id: orgUser.user_id,
-            email: userData?.user?.email || "Unknown email",
+            email: userData?.email || "Unknown email",
             full_name: profileData?.full_name || "",
             role: orgUser.role
           };
