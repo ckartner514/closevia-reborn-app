@@ -13,13 +13,9 @@ export type Notification = {
   type: 'proposal' | 'invoice';
 };
 
-// Define a type for the raw database query results to match what Supabase actually returns
-type SupabaseDealResult = {
-  id: string;
-  title: string;
-  due_date: string | null;
-  contact: Contact | null;
-  [key: string]: any; // Allow for other properties that might come from the database
+// Type for the database query results with properly typed contact
+type DealWithContact = Deal & {
+  contact?: Contact | null;
 };
 
 export const useNotifications = () => {
@@ -73,13 +69,13 @@ export const useNotifications = () => {
       if (invoicesError) throw invoicesError;
       
       // Process proposals to find those with past due_date
-      const proposalNotifications = (overdueProposals as SupabaseDealResult[])
+      const proposalNotifications = (overdueProposals as DealWithContact[])
         .filter(proposal => proposal.due_date && isPast(parseISO(proposal.due_date)))
         .map(proposal => {
-          // Handle contact data safely
+          // Check if contact exists and is properly structured
           let clientName = 'Unknown Client';
           if (proposal.contact && typeof proposal.contact === 'object') {
-            clientName = proposal.contact.name || 'Unknown Client';
+            clientName = (proposal.contact as Contact).name || 'Unknown Client';
           }
           
           return {
@@ -92,13 +88,13 @@ export const useNotifications = () => {
         });
       
       // Process invoices to find those with past due_date
-      const invoiceNotifications = (overdueInvoices as SupabaseDealResult[])
+      const invoiceNotifications = (overdueInvoices as DealWithContact[])
         .filter(invoice => invoice.due_date && isPast(parseISO(invoice.due_date)))
         .map(invoice => {
-          // Handle contact data safely
+          // Check if contact exists and is properly structured
           let clientName = 'Unknown Client';
           if (invoice.contact && typeof invoice.contact === 'object') {
-            clientName = invoice.contact.name || 'Unknown Client';
+            clientName = (invoice.contact as Contact).name || 'Unknown Client';
           }
           
           return {
