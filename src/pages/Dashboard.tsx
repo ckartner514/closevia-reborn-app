@@ -1,0 +1,262 @@
+
+import { useEffect, useState } from "react";
+import { supabase, Proposal, Invoice } from "@/lib/supabase";
+import { useAuth } from "@/contexts/AuthContext";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  LineChart,
+  Line,
+} from "recharts";
+import { format, subMonths, isAfter, isBefore, parseISO, startOfMonth, endOfMonth } from "date-fns";
+import { Loader2 } from "lucide-react";
+
+const Dashboard = () => {
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [metrics, setMetrics] = useState({
+    proposalsSent: 0,
+    dealsClosed: 0,
+    totalInvoiceAmount: 0,
+  });
+  const [revenueData, setRevenueData] = useState<any[]>([]);
+  const [proposalData, setProposalData] = useState<any[]>([]);
+  const [period, setPeriod] = useState("6months"); // 3months, 6months, 1year
+
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        // Fetch proposals for counts and charts
+        const { data: proposals, error: proposalsError } = await supabase
+          .from("proposals")
+          .select("*")
+          .eq("user_id", user.id);
+
+        if (proposalsError) throw proposalsError;
+
+        // Fetch invoices for financial metrics
+        const { data: invoices, error: invoicesError } = await supabase
+          .from("invoices")
+          .select("*")
+          .eq("user_id", user.id);
+
+        if (invoicesError) throw invoicesError;
+
+        // Calculate metrics
+        const proposalsSent = proposals.length;
+        const dealsClosed = proposals.filter(p => p.status === "Accepted").length;
+        const totalInvoiceAmount = invoices.reduce((sum, invoice) => sum + invoice.amount, 0);
+
+        setMetrics({
+          proposalsSent,
+          dealsClosed,
+          totalInvoiceAmount,
+        });
+
+        // Prepare time-series data for charts
+        prepareChartData(proposals, invoices);
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [user, period]);
+
+  const prepareChartData = (proposals: Proposal[], invoices: Invoice[]) => {
+    // Determine date range based on selected period
+    const today = new Date();
+    let startDate;
+    
+    switch(period) {
+      case "3months":
+        startDate = subMonths(today, 3);
+        break;
+      case "1year":
+        startDate = subMonths(today, 12);
+        break;
+      case "6months":
+      default:
+        startDate = subMonths(today, 6);
+    }
+
+    // Create month buckets for the selected period
+    const months: any[] = [];
+    let currentDate = startDate;
+    
+    while (isBefore(currentDate, today) || format(currentDate, "MMM yyyy") === format(today, "MMM yyyy")) {
+      months.push({
+        month: format(currentDate, "MMM yyyy"),
+        revenue: 0,
+        proposals: 0,
+      });
+      currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
+    }
+
+    // Populate revenue data
+    invoices.forEach(invoice => {
+      const invoiceDate = parseISO(invoice.created_at);
+      if (isAfter(invoiceDate, startDate)) {
+        const monthKey = format(invoiceDate, "MMM yyyy");
+        const monthData = months.find(m => m.month === monthKey);
+        if (monthData) {
+          monthData.revenue += invoice.amount;
+        }
+      }
+    });
+
+    // Populate proposal data
+    proposals.forEach(proposal => {
+      const proposalDate = parseISO(proposal.created_at);
+      if (isAfter(proposalDate, startDate)) {
+        const monthKey = format(proposalDate, "MMM yyyy");
+        const monthData = months.find(m => m.month === monthKey);
+        if (monthData) {
+          monthData.proposals += 1;
+        }
+      }
+    });
+
+    setRevenueData(months);
+    setProposalData(months);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex h-[200px] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(value);
+  };
+
+  return (
+    <div className="space-y-8">
+      <h1 className="page-title">Dashboard</h1>
+      
+      {/* Metrics Cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <Card>
+          <CardContent className="stats-card">
+            <CardTitle className="text-lg">Proposals Sent</CardTitle>
+            <div className="stats-value text-closevia-600">{metrics.proposalsSent}</div>
+            <p className="stats-label">Total proposals</p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="stats-card">
+            <CardTitle className="text-lg">Deals Closed</CardTitle>
+            <div className="stats-value text-green-600">{metrics.dealsClosed}</div>
+            <p className="stats-label">Accepted proposals</p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="stats-card">
+            <CardTitle className="text-lg">Total Revenue</CardTitle>
+            <div className="stats-value text-closevia-700">
+              {formatCurrency(metrics.totalInvoiceAmount)}
+            </div>
+            <p className="stats-label">From all invoices</p>
+          </CardContent>
+        </Card>
+      </div>
+      
+      {/* Charts */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle>Performance Metrics</CardTitle>
+          <Tabs defaultValue="6months" value={period} onValueChange={setPeriod} className="w-[400px]">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="3months">3 Months</TabsTrigger>
+              <TabsTrigger value="6months">6 Months</TabsTrigger>
+              <TabsTrigger value="1year">1 Year</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-8">
+            <div>
+              <h3 className="mb-2 text-sm font-medium">Revenue Over Time</h3>
+              <div className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={revenueData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="month" 
+                      tick={{ fontSize: 12 }} 
+                    />
+                    <YAxis 
+                      tickFormatter={(value) => `$${value}`} 
+                      tick={{ fontSize: 12 }} 
+                    />
+                    <Tooltip 
+                      formatter={(value) => [`$${value}`, 'Revenue']} 
+                      labelFormatter={(label) => `Month: ${label}`}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="revenue" 
+                      stroke="#0ea5e9" 
+                      strokeWidth={2} 
+                      activeDot={{ r: 8 }} 
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+            
+            <div>
+              <h3 className="mb-2 text-sm font-medium">Proposals by Month</h3>
+              <div className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={proposalData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="month" 
+                      tick={{ fontSize: 12 }} 
+                    />
+                    <YAxis 
+                      allowDecimals={false} 
+                      tick={{ fontSize: 12 }} 
+                    />
+                    <Tooltip 
+                      formatter={(value) => [value, 'Proposals']} 
+                      labelFormatter={(label) => `Month: ${label}`}
+                    />
+                    <Bar 
+                      dataKey="proposals" 
+                      fill="#0284c7" 
+                      radius={[4, 4, 0, 0]} 
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default Dashboard;
