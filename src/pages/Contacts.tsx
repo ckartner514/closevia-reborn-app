@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase, Contact } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
@@ -163,6 +164,12 @@ const ContactsPage = () => {
 
     try {
       setIsEditingContact(true);
+      console.log("Updating contact with data:", {
+        ...editedContact,
+        company_website: editedContact.company_website,
+        last_interaction: lastInteractionDate ? lastInteractionDate.toISOString() : null
+      });
+      
       const { error } = await supabase
         .from("contacts")
         .update({
@@ -182,6 +189,7 @@ const ContactsPage = () => {
           ? { 
               ...contact, 
               ...editedContact, 
+              company_website: editedContact.company_website,
               last_interaction: lastInteractionDate ? lastInteractionDate.toISOString() : null 
             }
           : contact
@@ -190,6 +198,7 @@ const ContactsPage = () => {
       setSelectedContact({
         ...selectedContact,
         ...editedContact,
+        company_website: editedContact.company_website,
         last_interaction: lastInteractionDate ? lastInteractionDate.toISOString() : null
       });
       
