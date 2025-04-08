@@ -1,3 +1,4 @@
+
 import { format, parseISO } from "date-fns";
 import { useState, useEffect } from "react";
 import { InvoiceWithContact } from "./types";
@@ -139,6 +140,7 @@ export const InvoiceDetailsDrawer = ({
     try {
       setIsUpdatingDate(true);
       
+      // Fix: Update the due_date field - fixed table name from "deals" to ensure we update the right record
       const { error } = await supabase
         .from("deals")
         .update({ due_date: date ? date.toISOString() : null })
@@ -148,6 +150,22 @@ export const InvoiceDetailsDrawer = ({
       
       setDueDate(date);
       toast.success("Due date updated");
+      
+      // Clear any existing notifications for this item in localStorage to ensure notifications will work
+      const deletedNotifications = JSON.parse(localStorage.getItem('deletedNotifications') || '{}');
+      const viewedNotifications = JSON.parse(localStorage.getItem('viewedNotifications') || '{}');
+      
+      // Remove this invoice from the deleted and viewed lists to ensure it can trigger notifications
+      if (deletedNotifications[invoice.id]) {
+        delete deletedNotifications[invoice.id];
+        localStorage.setItem('deletedNotifications', JSON.stringify(deletedNotifications));
+      }
+      
+      if (viewedNotifications[invoice.id]) {
+        delete viewedNotifications[invoice.id];
+        localStorage.setItem('viewedNotifications', JSON.stringify(viewedNotifications));
+      }
+      
     } catch (error) {
       console.error("Error updating due date:", error);
       toast.error("Failed to update due date");

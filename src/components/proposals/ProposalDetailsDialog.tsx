@@ -1,3 +1,4 @@
+
 import { format, parseISO } from "date-fns";
 import { useState, useEffect } from "react";
 import { CheckCircle, XCircle, FileText, Trash2, CalendarIcon } from "lucide-react";
@@ -145,6 +146,7 @@ export const ProposalDetailsDialog = ({
     try {
       setIsUpdatingDate(true);
       
+      // Fix: Update the due_date field in the deals table
       const { error } = await supabase
         .from("deals")
         .update({ due_date: date ? date.toISOString() : null })
@@ -154,6 +156,23 @@ export const ProposalDetailsDialog = ({
       
       setFollowUpDate(date);
       toast.success("Follow-up date updated");
+      
+      // Clear any existing notifications for this item in localStorage to ensure notifications will work
+      // This ensures the notification system will pick up the new date
+      const deletedNotifications = JSON.parse(localStorage.getItem('deletedNotifications') || '{}');
+      const viewedNotifications = JSON.parse(localStorage.getItem('viewedNotifications') || '{}');
+      
+      // Remove this proposal from the deleted and viewed lists to ensure it can trigger notifications
+      if (deletedNotifications[proposal.id]) {
+        delete deletedNotifications[proposal.id];
+        localStorage.setItem('deletedNotifications', JSON.stringify(deletedNotifications));
+      }
+      
+      if (viewedNotifications[proposal.id]) {
+        delete viewedNotifications[proposal.id];
+        localStorage.setItem('viewedNotifications', JSON.stringify(viewedNotifications));
+      }
+      
     } catch (error) {
       console.error("Error updating follow-up date:", error);
       toast.error("Failed to update follow-up date");
