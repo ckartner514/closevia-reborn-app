@@ -222,17 +222,19 @@ const PaymentsPage = () => {
     const y = cy + radius * Math.sin(-midAngle * RADIAN);
     
     return (
-      <text 
-        x={x} 
-        y={y} 
-        fill="white" 
-        textAnchor="middle" 
-        dominantBaseline="central"
-        fontSize={12}
-        title={fullName}
-      >
-        {`${name}: ${(percent * 100).toFixed(0)}%`}
-      </text>
+      <g>
+        <title>{fullName}</title>
+        <text 
+          x={x} 
+          y={y} 
+          fill="white" 
+          textAnchor="middle" 
+          dominantBaseline="central"
+          fontSize={12}
+        >
+          {`${name}: ${(percent * 100).toFixed(0)}%`}
+        </text>
+      </g>
     );
   };
   
