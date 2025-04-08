@@ -25,9 +25,10 @@ export const useTeamMembers = (user: User | null) => {
   // Get current organization and role
   useEffect(() => {
     if (!user) return;
-    
+
     const fetchOrgInfo = async () => {
       try {
+        // Fetch the user's organization and role
         const { data, error } = await supabase
           .from("user_organizations")
           .select(`
@@ -43,17 +44,16 @@ export const useTeamMembers = (user: User | null) => {
 
         if (error) throw error;
         
+        // Type guard to ensure organizations data exists
         if (data && data.organizations) {
-          // Fix the type issues by properly handling different possible data structures
-          let orgName = 'Unknown Organization';
+          // Explicitly handle organizations data with proper type casting
+          let orgName = "Unknown Organization";
           
           if (typeof data.organizations === 'object') {
-            // Handle both array and object cases
-            if (Array.isArray(data.organizations) && data.organizations.length > 0) {
-              orgName = data.organizations[0]?.name || orgName;
-            } else if ('name' in data.organizations) {
-              // Use type guard to check if 'name' exists on the object
-              orgName = data.organizations.name || orgName;
+            // Handle the case where organizations is returned as an object
+            const orgData = data.organizations as { name?: string };
+            if (orgData && orgData.name) {
+              orgName = orgData.name;
             }
           }
           
@@ -74,7 +74,7 @@ export const useTeamMembers = (user: User | null) => {
   // Fetch team members when org is available
   useEffect(() => {
     if (!currentOrg) return;
-    
+
     const fetchMembers = async () => {
       try {
         setLoading(true);
@@ -99,34 +99,17 @@ export const useTeamMembers = (user: User | null) => {
             .from("profiles")
             .select("full_name")
             .eq("id", orgUser.user_id)
-            .single();
+            .maybeSingle();
             
-          if (profileError && profileError.code !== "PGRST116") {
+          if (profileError) {
             console.error("Error fetching profile:", profileError);
           }
           
-          // Get email from auth.users table
-          // Note: Using a separate query for email since we can't directly join with auth tables
-          let email = "Unknown email";
-          try {
-            const { data: userData } = await supabase
-              .from("profiles") // Using profiles table as a workaround to get user email
-              .select("id")
-              .eq("id", orgUser.user_id)
-              .single();
-              
-            if (userData) {
-              // We have the user, try to get email from auth.users
-              // This would typically be handled by a secure server function
-              email = orgUser.user_id; // Fallback to user_id which is an email-like identifier
-            }
-          } catch (error) {
-            console.error("Error fetching user:", error);
-          }
-            
+          // For email, we'll use user_id as suggested (since it's likely the email)
+          // In a production app, you'd need proper access to auth.users
           return {
             id: orgUser.user_id,
-            email: email,
+            email: orgUser.user_id, // Using user_id as email placeholder
             full_name: profileData?.full_name || "",
             role: orgUser.role
           };
@@ -157,7 +140,7 @@ export const useTeamMembers = (user: User | null) => {
         .eq("org_id", currentOrg.id)
         .eq("email", email)
         .eq("accepted", false)
-        .single();
+        .maybeSingle();
         
       if (checkError && checkError.code !== "PGRST116") throw checkError;
       
