@@ -28,7 +28,7 @@ export const useProposals = (userId: string | undefined) => {
           )
         `)
         .eq("user_id", userId!)
-        .neq("status", "invoice") // Exclude invoices
+        .neq("status", "invoice") // This specifically excludes invoices
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -126,7 +126,8 @@ export const useProposals = (userId: string | undefined) => {
       const { error } = await supabase
         .from("deals")
         .delete()
-        .eq("id", proposalId);
+        .eq("id", proposalId)
+        .eq("user_id", userId);
 
       if (error) throw error;
       
