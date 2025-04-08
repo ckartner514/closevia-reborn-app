@@ -230,7 +230,7 @@ const PaymentsPage = () => {
       return (
         <div className="bg-background p-2 border rounded shadow-sm">
           <p className="font-medium">{`${label}`}</p>
-          <p className="text-primary">{`Revenue: $${payload[0].value.toFixed(2)}`}</p>
+          <p className="text-primary">{`Revenue: $${typeof payload[0].value === 'number' ? payload[0].value.toFixed(2) : payload[0].value}`}</p>
           <p className="text-sm text-muted-foreground">{`Invoices: ${payload[1].value}`}</p>
         </div>
       );
@@ -360,7 +360,7 @@ const PaymentsPage = () => {
                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                           ))}
                         </Pie>
-                        <Tooltip formatter={(value) => [`$${value.toFixed(2)}`, 'Revenue']} />
+                        <Tooltip formatter={(value) => [`$${typeof value === 'number' ? value.toFixed(2) : value}`, 'Revenue']} />
                         <Legend />
                       </PieChart>
                     </ResponsiveContainer>
@@ -386,7 +386,7 @@ const PaymentsPage = () => {
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey={chartType === "monthly" ? "month" : "quarter"} />
                         <YAxis tickFormatter={(value) => `$${value}`} />
-                        <Tooltip formatter={(value) => [`$${value.toFixed(2)}`, 'Revenue']} />
+                        <Tooltip formatter={(value) => [`$${typeof value === 'number' ? value.toFixed(2) : value}`, 'Revenue']} />
                         <Line
                           type="monotone"
                           dataKey="total"

@@ -50,6 +50,11 @@ export type Invoice = {
   amount: number;
   created_at: string;
   user_id: string;
+  contact?: {
+    id: string;
+    name: string;
+    company: string;
+  };
 };
 
 export type User = {

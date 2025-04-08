@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase, Invoice } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
@@ -33,6 +32,7 @@ import {
 import { format, parseISO, isWithinInterval, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { DateRange } from "react-day-picker";
 
 type InvoiceWithContact = Invoice & {
   contact: {
@@ -53,7 +53,7 @@ const InvoicesPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [contacts, setContacts] = useState<{ id: string; name: string; company: string }[]>([]);
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
-  const [dateRange, setDateRange] = useState<{from: Date, to: Date} | null>(null);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [dateOpen, setDateOpen] = useState(false);
   
   useEffect(() => {
@@ -81,7 +81,6 @@ const InvoicesPage = () => {
 
       if (error) throw error;
       
-      // Transform data to match our expected type
       const invoicesWithContacts = data.map((item: any) => ({
         ...item,
         contact: item.contact,
@@ -150,25 +149,27 @@ const InvoicesPage = () => {
   const clearFilters = () => {
     setSearchQuery("");
     setSelectedContactId(null);
-    setDateRange(null);
+    setDateRange(undefined);
   };
 
-  // Apply all filters to the invoices
   const filteredInvoices = invoices.filter(invoice => {
-    // Contact filter
     if (selectedContactId && invoice.contact_id !== selectedContactId) {
       return false;
     }
     
-    // Date range filter
-    if (dateRange?.from && dateRange?.to) {
+    if (dateRange?.from) {
       const invoiceDate = parseISO(invoice.created_at);
-      if (!isWithinInterval(invoiceDate, { start: dateRange.from, end: dateRange.to })) {
-        return false;
+      if (dateRange.to) {
+        if (!isWithinInterval(invoiceDate, { start: dateRange.from, end: dateRange.to })) {
+          return false;
+        }
+      } else {
+        if (invoiceDate < dateRange.from) {
+          return false;
+        }
       }
     }
     
-    // Search query filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       const matchesContact = invoice.contact?.name.toLowerCase().includes(query) || 
@@ -184,7 +185,6 @@ const InvoicesPage = () => {
 
   const totalInvoiceAmount = filteredInvoices.reduce((sum, invoice) => sum + invoice.amount, 0);
 
-  // Quick filter functions
   const setCurrentMonth = () => {
     const now = new Date();
     setDateRange({
@@ -221,7 +221,6 @@ const InvoicesPage = () => {
         </Button>
       </div>
       
-      {/* Filters */}
       <div className="flex flex-wrap gap-3">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -309,7 +308,7 @@ const InvoicesPage = () => {
                   variant="outline" 
                   size="sm"
                   className="text-xs"
-                  onClick={() => setDateRange(null)}
+                  onClick={() => setDateRange(undefined)}
                 >
                   Clear
                 </Button>
@@ -346,7 +345,6 @@ const InvoicesPage = () => {
         )}
       </div>
       
-      {/* Summary card */}
       {filteredInvoices.length > 0 && (
         <div className="bg-muted p-4 rounded-md">
           <div className="flex justify-between items-center">
