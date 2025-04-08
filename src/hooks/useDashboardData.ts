@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { format, subMonths, isAfter, parseISO, isBefore } from "date-fns";
+import { format, subMonths, isAfter, parseISO, isBefore, subDays, addDays } from "date-fns";
 
 export type Period = "3months" | "6months" | "1year";
 
@@ -26,7 +26,9 @@ export const useDashboardData = (userId: string | undefined) => {
   });
   const [revenueData, setRevenueData] = useState<any[]>([]);
   const [proposalData, setProposalData] = useState<any[]>([]);
-  const [topClients, setTopClients] = useState<{ name: string; company: string; revenue: number }[]>([]);
+  const [proposalsToFollowUp, setProposalsToFollowUp] = useState<number>(0);
+  const [overdueInvoices, setOverdueInvoices] = useState<number>(0);
+  const [upcomingInvoices, setUpcomingInvoices] = useState<any[]>([]);
   const [period, setPeriod] = useState<Period>("6months");
 
   useEffect(() => {
@@ -41,7 +43,7 @@ export const useDashboardData = (userId: string | undefined) => {
       const { data: proposals, error: proposalsError } = await supabase
         .from("deals")
         .select("*")
-        .eq("user_id", userId)
+        .eq("user_id", userId!)
         .neq("status", "invoice");
 
       if (proposalsError) throw proposalsError;
@@ -50,7 +52,7 @@ export const useDashboardData = (userId: string | undefined) => {
       const { data: allInvoices, error: allInvoicesError } = await supabase
         .from("deals")
         .select("*, contact:contacts(name, company)")
-        .eq("user_id", userId)
+        .eq("user_id", userId!)
         .eq("status", "invoice");
 
       if (allInvoicesError) throw allInvoicesError;
@@ -59,7 +61,7 @@ export const useDashboardData = (userId: string | undefined) => {
       const { data: invoices, error: invoicesError } = await supabase
         .from("deals")
         .select("*, contact:contacts(name, company)")
-        .eq("user_id", userId)
+        .eq("user_id", userId!)
         .eq("status", "invoice")
         .eq("invoice_status", "paid");
 
@@ -73,11 +75,40 @@ export const useDashboardData = (userId: string | undefined) => {
 
       // Calculate overdue invoices
       const today = new Date();
-      const overdueInvoices = allInvoices.filter(invoice => {
+      today.setHours(0, 0, 0, 0);
+      
+      const overdueInvoicesCount = allInvoices.filter(invoice => {
         if (!invoice.due_date) return false;
         const dueDate = parseISO(invoice.due_date);
         return isBefore(dueDate, today) && invoice.invoice_status !== "paid";
       }).length;
+      
+      setOverdueInvoices(overdueInvoicesCount);
+
+      // Calculate proposals to follow up (open and last updated > 7 days ago)
+      const sevenDaysAgo = subDays(today, 7);
+      const proposalsToFollowUpCount = proposals.filter(p => {
+        if (p.status !== "open") return false;
+        const createdDate = parseISO(p.created_at);
+        return isBefore(createdDate, sevenDaysAgo);
+      }).length;
+      
+      setProposalsToFollowUp(proposalsToFollowUpCount);
+
+      // Get upcoming invoices (due date > today, not paid, ordered by due date)
+      const upcomingInvoicesData = allInvoices
+        .filter(invoice => {
+          if (!invoice.due_date) return false;
+          const dueDate = parseISO(invoice.due_date);
+          return isAfter(dueDate, today) && invoice.invoice_status !== "paid";
+        })
+        .sort((a, b) => {
+          if (!a.due_date || !b.due_date) return 0;
+          return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+        })
+        .slice(0, 3);
+        
+      setUpcomingInvoices(upcomingInvoicesData);
 
       // Calculate conversion rate
       const totalProposals = proposals.length;
@@ -96,32 +127,9 @@ export const useDashboardData = (userId: string | undefined) => {
         dealsClosed,
         totalInvoiceAmount,
         openProposals,
-        overdueInvoices,
+        overdueInvoices: overdueInvoicesCount,
         conversionRate,
       });
-
-      // Calculate top clients by revenue
-      const clientRevenue = invoices.reduce((acc: Record<string, any>, invoice) => {
-        const contactId = invoice.contact_id;
-        if (!contactId || !invoice.contact) return acc;
-        
-        if (!acc[contactId]) {
-          acc[contactId] = {
-            name: invoice.contact.name,
-            company: invoice.contact.company,
-            revenue: 0
-          };
-        }
-        
-        acc[contactId].revenue += invoice.amount;
-        return acc;
-      }, {});
-
-      const topClientsList = Object.values(clientRevenue)
-        .sort((a: any, b: any) => b.revenue - a.revenue)
-        .slice(0, 5);
-      
-      setTopClients(topClientsList as any[]);
 
       // Prepare time-series data for charts
       prepareChartData(proposals, invoices);
@@ -209,6 +217,8 @@ export const useDashboardData = (userId: string | undefined) => {
     proposalData,
     period,
     setPeriod,
-    topClients
+    proposalsToFollowUp,
+    overdueInvoices,
+    upcomingInvoices
   };
 };
