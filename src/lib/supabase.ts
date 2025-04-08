@@ -21,6 +21,7 @@ export type Contact = {
   company: string;
   email: string;
   phone: string;
+  company_website?: string | null;
   last_interaction: string | null;
   created_at: string;
   user_id: string;

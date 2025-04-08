@@ -45,6 +45,7 @@ export type Database = {
         Row: {
           comments: string | null
           company: string
+          company_website: string | null
           created_at: string
           email: string
           id: string
@@ -57,6 +58,7 @@ export type Database = {
         Insert: {
           comments?: string | null
           company: string
+          company_website?: string | null
           created_at?: string
           email: string
           id?: string
@@ -69,6 +71,7 @@ export type Database = {
         Update: {
           comments?: string | null
           company?: string
+          company_website?: string | null
           created_at?: string
           email?: string
           id?: string

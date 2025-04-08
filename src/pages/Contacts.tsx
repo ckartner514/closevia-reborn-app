@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase, Contact } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
@@ -171,6 +170,7 @@ const ContactsPage = () => {
           company: editedContact.company,
           email: editedContact.email,
           phone: editedContact.phone,
+          company_website: editedContact.company_website,
           last_interaction: lastInteractionDate ? lastInteractionDate.toISOString() : null,
         })
         .eq("id", selectedContact.id);

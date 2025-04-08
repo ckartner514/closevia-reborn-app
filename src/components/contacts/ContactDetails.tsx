@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Loader2, CalendarIcon } from "lucide-react";
+import { Loader2, CalendarIcon, Globe } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import ContactComments from "./ContactComments";
@@ -86,6 +86,32 @@ const ContactDetails = ({
               value={editedContact.phone || ""}
               onChange={(e) => onEditedContactChange("phone", e.target.value)}
             />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Company Website</label>
+            {contact.company_website ? (
+              <div className="flex space-x-2">
+                <Input 
+                  value={editedContact.company_website || ""}
+                  onChange={(e) => onEditedContactChange("company_website", e.target.value)}
+                />
+                <Button 
+                  variant="outline" 
+                  size="icon"
+                  onClick={() => window.open(editedContact.company_website, '_blank')}
+                  title="Open website"
+                  disabled={!editedContact.company_website}
+                >
+                  <Globe className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <Input 
+                value={editedContact.company_website || ""}
+                onChange={(e) => onEditedContactChange("company_website", e.target.value)}
+                placeholder="https://"
+              />
+            )}
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium">Last Interaction</label>
