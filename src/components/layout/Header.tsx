@@ -42,10 +42,21 @@ export function Header({ collapsed, setCollapsed }: HeaderProps) {
       
       if (!error && data) {
         setUserProfile(data);
+        console.log("Fetched profile:", data);
       }
     } catch (error) {
       console.error("Error fetching profile:", error);
     }
+  };
+
+  // Get the user's first name from full_name or email
+  const getFirstName = () => {
+    if (userProfile?.full_name) {
+      return userProfile.full_name.split(" ")[0];
+    }
+    
+    // Fallback to the first part of the email
+    return user?.email?.split("@")[0] || 'User';
   };
 
   // Get the user's initials from their email or name
@@ -99,7 +110,7 @@ export function Header({ collapsed, setCollapsed }: HeaderProps) {
             <Menu className="h-5 w-5" />
           </Button>
           <h1 className="text-lg font-semibold text-foreground md:text-xl">
-            {userProfile?.full_name ? `Welcome back, ${userProfile.full_name.split(" ")[0]}` : user?.email ? `Welcome back, ${user.email.split("@")[0]}` : "Closevia Dashboard"}
+            Welcome back, {getFirstName()}
           </h1>
         </div>
         
@@ -158,7 +169,7 @@ export function Header({ collapsed, setCollapsed }: HeaderProps) {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center gap-2 px-2">
-                <Avatar className="h-8 w-8 bg-slate-400 text-white border border-slate-300">
+                <Avatar className="h-8 w-8 bg-primary text-white">
                   <AvatarFallback>{getInitials()}</AvatarFallback>
                 </Avatar>
                 <span className="hidden font-medium text-sm md:inline-block">
