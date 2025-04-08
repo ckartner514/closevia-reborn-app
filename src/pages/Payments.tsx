@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
@@ -83,7 +82,6 @@ const PaymentsPage = () => {
       
       console.log("Fetched paid invoices:", data);
       
-      // Filter invoices by year
       const year = parseInt(yearFilter);
       const filteredInvoices = data.filter((invoice: any) => {
         const invoiceDate = parseISO(invoice.created_at);
@@ -97,7 +95,6 @@ const PaymentsPage = () => {
       
       setPaidInvoices(invoicesWithContacts);
       
-      // Prepare chart data
       prepareChartData(invoicesWithContacts);
       prepareClientData(invoicesWithContacts);
     } catch (error) {
@@ -109,7 +106,6 @@ const PaymentsPage = () => {
   };
   
   const prepareChartData = (invoices: InvoiceWithContact[]) => {
-    // Create all months for the selected year
     const year = parseInt(yearFilter);
     const startDate = startOfYear(new Date(year, 0, 1));
     const endDate = endOfYear(new Date(year, 0, 1));
@@ -123,7 +119,6 @@ const PaymentsPage = () => {
       count: 0
     }));
     
-    // Populate with invoice data
     invoices.forEach(invoice => {
       const invoiceDate = parseISO(invoice.created_at);
       const monthIndex = invoiceDate.getMonth();
@@ -136,7 +131,6 @@ const PaymentsPage = () => {
   };
   
   const prepareClientData = (invoices: InvoiceWithContact[]) => {
-    // Aggregate by client
     const clientMap = new Map<string, number>();
     
     invoices.forEach(invoice => {
@@ -149,11 +143,10 @@ const PaymentsPage = () => {
       }
     });
     
-    // Convert to array for chart
     const clientData = Array.from(clientMap.entries())
       .map(([name, amount]) => ({ name, value: amount }))
       .sort((a, b) => b.value - a.value)
-      .slice(0, 5); // Top 5 clients
+      .slice(0, 5);
     
     setClientRevenue(clientData);
   };
@@ -198,13 +191,11 @@ const PaymentsPage = () => {
     toast.success("Payment data exported to CSV");
   };
   
-  // Generate year options (last 5 years)
   const yearOptions = Array.from({ length: 5 }, (_, i) => {
     const year = new Date().getFullYear() - i;
     return year.toString();
   });
   
-  // Calculate total revenue
   const totalRevenue = paidInvoices.reduce((sum, invoice) => sum + invoice.amount, 0);
   
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -365,7 +356,10 @@ const PaymentsPage = () => {
                   </div>
                 ) : (
                   <div className="max-h-[300px] overflow-y-auto">
-                    <InvoiceTable invoices={paidInvoices.slice(0, 5)} />
+                    <InvoiceTable 
+                      invoices={paidInvoices.slice(0, 5)}
+                      readOnly={true}
+                    />
                     {paidInvoices.length > 5 && (
                       <p className="text-xs text-center mt-2 text-muted-foreground">
                         Showing 5 of {paidInvoices.length} paid invoices
@@ -384,7 +378,10 @@ const PaymentsPage = () => {
                 <CardDescription>Complete payment history for {yearFilter}</CardDescription>
               </CardHeader>
               <CardContent>
-                <InvoiceTable invoices={paidInvoices} />
+                <InvoiceTable 
+                  invoices={paidInvoices}
+                  readOnly={true}
+                />
               </CardContent>
             </Card>
           )}
