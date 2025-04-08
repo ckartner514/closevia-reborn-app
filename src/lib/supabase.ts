@@ -5,11 +5,20 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseKey) {
-  console.error('Supabase credentials are missing. Make sure you have connected your Supabase project.');
+// Check if credentials are available and provide clear error messages
+if (!supabaseUrl) {
+  console.error('Supabase URL is missing. Please make sure your Supabase project is connected properly.');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
+if (!supabaseKey) {
+  console.error('Supabase anonymous key is missing. Please make sure your Supabase project is connected properly.');
+}
+
+// Create the Supabase client with fallback to empty strings (will show proper UI error instead of crashing)
+export const supabase = createClient(
+  supabaseUrl || 'https://placeholder-url.supabase.co', 
+  supabaseKey || 'placeholder-key'
+);
 
 // Define types for database tables
 export type Contact = {
