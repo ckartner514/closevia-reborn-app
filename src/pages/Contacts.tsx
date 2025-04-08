@@ -201,7 +201,7 @@ const ContactsPage = () => {
       setIsEditingContact(false);
     }
   };
-  
+
   const handleCreateContact = async () => {
     if (!newContact.name) {
       toast.error("Contact name is required");
@@ -257,7 +257,7 @@ const ContactsPage = () => {
   const handleEditedContactChange = (field: string, value: string) => {
     setEditedContact(prev => ({ ...prev, [field]: value }));
   };
-  
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
