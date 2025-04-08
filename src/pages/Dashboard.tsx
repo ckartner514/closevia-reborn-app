@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from "react";
-import { supabase, Proposal, Invoice } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -15,7 +15,7 @@ import {
   LineChart,
   Line,
 } from "recharts";
-import { format, subMonths, isAfter, isBefore, parseISO, startOfMonth, endOfMonth } from "date-fns";
+import { format, subMonths, isAfter, parseISO, startOfMonth, endOfMonth } from "date-fns";
 import { Loader2 } from "lucide-react";
 
 const Dashboard = () => {
@@ -36,9 +36,9 @@ const Dashboard = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        // Fetch proposals for counts and charts
+        // Fetch proposals for counts and charts - update to use deals table
         const { data: proposals, error: proposalsError } = await supabase
-          .from("proposals")
+          .from("deals")
           .select("*")
           .eq("user_id", user.id);
 
@@ -52,9 +52,9 @@ const Dashboard = () => {
 
         if (invoicesError) throw invoicesError;
 
-        // Calculate metrics
+        // Calculate metrics - updated to use correct status value
         const proposalsSent = proposals.length;
-        const dealsClosed = proposals.filter(p => p.status === "Accepted").length;
+        const dealsClosed = proposals.filter(p => p.status === "accepted").length;
         const totalInvoiceAmount = invoices.reduce((sum, invoice) => sum + invoice.amount, 0);
 
         setMetrics({
@@ -75,7 +75,7 @@ const Dashboard = () => {
     fetchData();
   }, [user, period]);
 
-  const prepareChartData = (proposals: Proposal[], invoices: Invoice[]) => {
+  const prepareChartData = (proposals: any[], invoices: any[]) => {
     // Determine date range based on selected period
     const today = new Date();
     let startDate;
@@ -96,11 +96,14 @@ const Dashboard = () => {
     const months: any[] = [];
     let currentDate = startDate;
     
-    while (isBefore(currentDate, today) || format(currentDate, "MMM yyyy") === format(today, "MMM yyyy")) {
+    while (isAfter(today, currentDate) || format(currentDate, "MMM yyyy") === format(today, "MMM yyyy")) {
       months.push({
         month: format(currentDate, "MMM yyyy"),
         revenue: 0,
         proposals: 0,
+        openProposals: 0,
+        acceptedProposals: 0,
+        refusedProposals: 0,
       });
       currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
     }
@@ -117,7 +120,7 @@ const Dashboard = () => {
       }
     });
 
-    // Populate proposal data
+    // Populate proposal data with status breakdown
     proposals.forEach(proposal => {
       const proposalDate = parseISO(proposal.created_at);
       if (isAfter(proposalDate, startDate)) {
@@ -125,6 +128,15 @@ const Dashboard = () => {
         const monthData = months.find(m => m.month === monthKey);
         if (monthData) {
           monthData.proposals += 1;
+          
+          // Add status-specific counts
+          if (proposal.status === "open") {
+            monthData.openProposals += 1;
+          } else if (proposal.status === "accepted") {
+            monthData.acceptedProposals += 1;
+          } else if (proposal.status === "refused") {
+            monthData.refusedProposals += 1;
+          }
         }
       }
     });
@@ -240,13 +252,34 @@ const Dashboard = () => {
                       tick={{ fontSize: 12 }} 
                     />
                     <Tooltip 
-                      formatter={(value) => [value, 'Proposals']} 
+                      formatter={(value, name) => {
+                        const formattedName = {
+                          'proposals': 'All Proposals',
+                          'openProposals': 'Open Proposals',
+                          'acceptedProposals': 'Accepted Proposals',
+                          'refusedProposals': 'Refused Proposals'
+                        }[name as string] || name;
+                        return [value, formattedName];
+                      }}
                       labelFormatter={(label) => `Month: ${label}`}
                     />
                     <Bar 
-                      dataKey="proposals" 
-                      fill="#0284c7" 
-                      radius={[4, 4, 0, 0]} 
+                      dataKey="openProposals" 
+                      fill="#facc15" 
+                      stackId="a"
+                      name="Open Proposals"
+                    />
+                    <Bar 
+                      dataKey="acceptedProposals" 
+                      fill="#22c55e" 
+                      stackId="a"
+                      name="Accepted Proposals"
+                    />
+                    <Bar 
+                      dataKey="refusedProposals" 
+                      fill="#ef4444" 
+                      stackId="a"
+                      name="Refused Proposals"
                     />
                   </BarChart>
                 </ResponsiveContainer>

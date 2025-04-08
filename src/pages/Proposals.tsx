@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase, Contact } from "@/lib/supabase";
@@ -32,6 +31,23 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { 
   ArrowUpRight, 
   Check, 
@@ -40,21 +56,24 @@ import {
   Loader2, 
   PlusCircle,
   X, 
-  XCircle 
+  XCircle, 
+  DollarSign
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 
-// Update type definition to match the database schema
 type Proposal = {
   id: string;
   contact_id: string;
   title: string;
-  notes: string | null; // Changed from description to notes
+  notes: string | null;
   amount: number;
-  due_date: string | null; // Changed from follow_up_date to due_date
-  status: 'open' | 'accepted' | 'refused'; // Changed status values
+  due_date: string | null;
+  status: 'open' | 'accepted' | 'refused';
   created_at: string;
   user_id: string;
 };
@@ -62,6 +81,12 @@ type Proposal = {
 type ProposalWithContact = Proposal & {
   contact: Contact;
 };
+
+const InvoiceSchema = z.object({
+  amount: z.coerce.number().min(1, "Amount must be greater than 0"),
+  notes: z.string().optional(),
+  includeItems: z.boolean().default(false),
+});
 
 const ProposalsPage = () => {
   const { user } = useAuth();
@@ -72,16 +97,34 @@ const ProposalsPage = () => {
   const [isConvertingToInvoice, setIsConvertingToInvoice] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [invoiceStep, setInvoiceStep] = useState<number>(1);
+  const [invoiceCreated, setInvoiceCreated] = useState<boolean>(false);
+  const [invoiceId, setInvoiceId] = useState<string | null>(null);
+
+  const form = useForm<z.infer<typeof InvoiceSchema>>({
+    resolver: zodResolver(InvoiceSchema),
+    defaultValues: {
+      amount: 0,
+      notes: "",
+      includeItems: false,
+    },
+  });
 
   useEffect(() => {
     if (!user) return;
     fetchProposals();
   }, [user]);
 
+  useEffect(() => {
+    if (selectedProposal) {
+      form.setValue("amount", selectedProposal.amount);
+      form.setValue("notes", selectedProposal.notes || "");
+    }
+  }, [selectedProposal, form]);
+
   const fetchProposals = async () => {
     try {
       setLoading(true);
-      // Updated to use "deals" table instead of "proposals"
       const { data, error } = await supabase
         .from("deals")
         .select(`
@@ -97,7 +140,6 @@ const ProposalsPage = () => {
       
       console.log("Fetched proposals:", data);
       
-      // Transform data to match our expected type
       const proposalsWithContacts = data.map((item: any) => ({
         ...item,
         contact: item.contact,
@@ -116,13 +158,12 @@ const ProposalsPage = () => {
     try {
       setIsUpdatingStatus(true);
       const { error } = await supabase
-        .from("deals") // Changed from "proposals" to "deals"
+        .from("deals")
         .update({ status: newStatus })
         .eq("id", proposalId);
 
       if (error) throw error;
       
-      // Update local state
       setProposals(proposals.map(p => p.id === proposalId ? { ...p, status: newStatus } : p));
       
       if (selectedProposal?.id === proposalId) {
@@ -164,7 +205,48 @@ const ProposalsPage = () => {
     }
   };
 
-  // Filter proposals by status
+  const resetInvoiceProcess = () => {
+    setInvoiceStep(1);
+    setInvoiceCreated(false);
+    setInvoiceId(null);
+    form.reset({
+      amount: selectedProposal?.amount || 0,
+      notes: selectedProposal?.notes || "",
+      includeItems: false,
+    });
+  };
+
+  const handleCreateInvoice = async (data: z.infer<typeof InvoiceSchema>) => {
+    if (!selectedProposal) return;
+    
+    try {
+      setIsConvertingToInvoice(true);
+      
+      const { data: invoiceData, error } = await supabase
+        .from("invoices")
+        .insert({
+          contact_id: selectedProposal.contact_id,
+          proposal_id: selectedProposal.id,
+          amount: data.amount,
+          user_id: user!.id,
+        })
+        .select('id')
+        .single();
+
+      if (error) throw error;
+      
+      setInvoiceId(invoiceData.id);
+      setInvoiceCreated(true);
+      setInvoiceStep(3);
+      toast.success("Invoice created successfully!");
+    } catch (error) {
+      console.error("Error creating invoice:", error);
+      toast.error("Failed to create invoice");
+    } finally {
+      setIsConvertingToInvoice(false);
+    }
+  };
+
   const filteredProposals = filterStatus === "all" 
     ? proposals 
     : proposals.filter(p => p.status === filterStatus);
@@ -251,146 +333,270 @@ const ProposalsPage = () => {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Dialog>
+                    <Dialog onOpenChange={(open) => {
+                      if (open) {
+                        setSelectedProposal(proposal);
+                        resetInvoiceProcess();
+                      }
+                    }}>
                       <DialogTrigger asChild>
                         <Button 
                           variant="ghost" 
                           size="icon"
-                          onClick={() => setSelectedProposal(proposal)}
                         >
                           <ArrowUpRight className="h-4 w-4" />
                         </Button>
                       </DialogTrigger>
                       <DialogContent className="sm:max-w-md">
-                        <DialogHeader>
-                          <DialogTitle>Proposal Details</DialogTitle>
-                          <DialogDescription>
-                            Created on {format(parseISO(proposal.created_at), "PPP")}
-                          </DialogDescription>
-                        </DialogHeader>
-                        
-                        <div className="grid gap-4 py-4">
-                          <div className="space-y-2">
-                            <div className="flex justify-between">
-                              <h3 className="text-lg font-medium">{proposal.title}</h3>
-                              <Badge 
-                                variant="outline"
-                                className={cn(
-                                  "flex items-center gap-1",
-                                  getStatusColor(proposal.status)
+                        {invoiceStep === 1 && (
+                          <>
+                            <DialogHeader>
+                              <DialogTitle>Proposal Details</DialogTitle>
+                              <DialogDescription>
+                                Created on {selectedProposal && format(parseISO(selectedProposal.created_at), "PPP")}
+                              </DialogDescription>
+                            </DialogHeader>
+                            
+                            <div className="grid gap-4 py-4">
+                              <div className="space-y-2">
+                                <div className="flex justify-between">
+                                  <h3 className="text-lg font-medium">{selectedProposal?.title}</h3>
+                                  <Badge 
+                                    variant="outline"
+                                    className={cn(
+                                      "flex items-center gap-1",
+                                      selectedProposal ? getStatusColor(selectedProposal.status) : ""
+                                    )}
+                                  >
+                                    {selectedProposal && getStatusIcon(selectedProposal.status)}
+                                    <span className="capitalize">{selectedProposal?.status}</span>
+                                  </Badge>
+                                </div>
+                                
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-medium">Client:</span>
+                                  <span className="text-sm">
+                                    {selectedProposal?.contact?.name} ({selectedProposal?.contact?.company})
+                                  </span>
+                                </div>
+                                
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-medium">Amount:</span>
+                                  <span className="text-sm">${selectedProposal?.amount.toFixed(2)}</span>
+                                </div>
+                                
+                                {selectedProposal?.due_date && (
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-sm font-medium">Follow-up:</span>
+                                    <span className="text-sm">
+                                      {format(parseISO(selectedProposal.due_date), "PPP")}
+                                    </span>
+                                  </div>
                                 )}
-                              >
-                                {getStatusIcon(proposal.status)}
-                                <span className="capitalize">{proposal.status}</span>
-                              </Badge>
-                            </div>
-                            
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium">Client:</span>
-                              <span className="text-sm">
-                                {proposal.contact?.name} ({proposal.contact?.company})
-                              </span>
-                            </div>
-                            
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium">Amount:</span>
-                              <span className="text-sm">${proposal.amount.toFixed(2)}</span>
-                            </div>
-                            
-                            {proposal.due_date && (
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm font-medium">Follow-up:</span>
-                                <span className="text-sm">
-                                  {format(parseISO(proposal.due_date), "PPP")}
-                                </span>
+                                
+                                {selectedProposal?.notes && (
+                                  <div className="mt-4">
+                                    <Label className="mb-2 block">Description</Label>
+                                    <Textarea 
+                                      value={selectedProposal.notes}
+                                      readOnly
+                                      className="resize-none"
+                                      rows={4}
+                                    />
+                                  </div>
+                                )}
                               </div>
-                            )}
-                            
-                            {proposal.notes && (
-                              <div className="mt-4">
-                                <Label className="mb-2 block">Description</Label>
-                                <Textarea 
-                                  value={proposal.notes}
-                                  readOnly
-                                  className="resize-none"
-                                  rows={4}
-                                />
+                              
+                              <div className="space-y-2">
+                                <Label>Update Status</Label>
+                                <div className="flex gap-2">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className={cn(
+                                      "flex-1 gap-1",
+                                      selectedProposal?.status === "open" 
+                                        ? "border-yellow-500 bg-yellow-50" 
+                                        : ""
+                                    )}
+                                    onClick={() => selectedProposal && handleStatusChange(selectedProposal.id, "open")}
+                                    disabled={isUpdatingStatus}
+                                  >
+                                    <FileText className="h-4 w-4" />
+                                    Open
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className={cn(
+                                      "flex-1 gap-1",
+                                      selectedProposal?.status === "accepted" 
+                                        ? "border-green-500 bg-green-50" 
+                                        : ""
+                                    )}
+                                    onClick={() => selectedProposal && handleStatusChange(selectedProposal.id, "accepted")}
+                                    disabled={isUpdatingStatus}
+                                  >
+                                    <Check className="h-4 w-4" />
+                                    Accepted
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className={cn(
+                                      "flex-1 gap-1",
+                                      selectedProposal?.status === "refused" 
+                                        ? "border-red-500 bg-red-50" 
+                                        : ""
+                                    )}
+                                    onClick={() => selectedProposal && handleStatusChange(selectedProposal.id, "refused")}
+                                    disabled={isUpdatingStatus}
+                                  >
+                                    <X className="h-4 w-4" />
+                                    Refused
+                                  </Button>
+                                </div>
                               </div>
-                            )}
-                          </div>
-                          
-                          <div className="space-y-2">
-                            <Label>Update Status</Label>
-                            <div className="flex gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className={cn(
-                                  "flex-1 gap-1",
-                                  proposal.status === "open" 
-                                    ? "border-yellow-500 bg-yellow-50" 
-                                    : ""
-                                )}
-                                onClick={() => handleStatusChange(proposal.id, "open")}
-                                disabled={isUpdatingStatus}
-                              >
-                                <FileText className="h-4 w-4" />
-                                Open
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className={cn(
-                                  "flex-1 gap-1",
-                                  proposal.status === "accepted" 
-                                    ? "border-green-500 bg-green-50" 
-                                    : ""
-                                )}
-                                onClick={() => handleStatusChange(proposal.id, "accepted")}
-                                disabled={isUpdatingStatus}
-                              >
-                                <Check className="h-4 w-4" />
-                                Accepted
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className={cn(
-                                  "flex-1 gap-1",
-                                  proposal.status === "refused" 
-                                    ? "border-red-500 bg-red-50" 
-                                    : ""
-                                )}
-                                onClick={() => handleStatusChange(proposal.id, "refused")}
-                                disabled={isUpdatingStatus}
-                              >
-                                <X className="h-4 w-4" />
-                                Refused
-                              </Button>
                             </div>
-                          </div>
-                        </div>
-                        
-                        <DialogFooter>
-                          {proposal.status === "accepted" && (
-                            <Button
-                              onClick={() => {
-                                /* Implement invoice creation later */
-                                toast.info("Invoice creation will be implemented in a future update");
-                              }}
-                              disabled={isConvertingToInvoice}
-                            >
-                              {isConvertingToInvoice ? (
-                                <>
-                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                  Converting...
-                                </>
-                              ) : (
-                                "Convert to Invoice"
+                            
+                            <DialogFooter>
+                              {selectedProposal?.status === "accepted" && (
+                                <Button
+                                  onClick={() => setInvoiceStep(2)}
+                                >
+                                  <DollarSign className="mr-2 h-4 w-4" />
+                                  Convert to Invoice
+                                </Button>
                               )}
-                            </Button>
-                          )}
-                        </DialogFooter>
+                            </DialogFooter>
+                          </>
+                        )}
+
+                        {invoiceStep === 2 && (
+                          <>
+                            <DialogHeader>
+                              <DialogTitle>Create Invoice</DialogTitle>
+                              <DialogDescription>
+                                Convert "{selectedProposal?.title}" to an invoice.
+                              </DialogDescription>
+                            </DialogHeader>
+                            
+                            <Form {...form}>
+                              <form onSubmit={form.handleSubmit(handleCreateInvoice)} className="space-y-4">
+                                <FormField
+                                  control={form.control}
+                                  name="amount"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>Invoice Amount</FormLabel>
+                                      <FormControl>
+                                        <div className="relative">
+                                          <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                                          <Input type="number" step="0.01" className="pl-9" {...field} />
+                                        </div>
+                                      </FormControl>
+                                      <FormDescription>
+                                        Amount to be invoiced to client
+                                      </FormDescription>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                                
+                                <FormField
+                                  control={form.control}
+                                  name="notes"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>Additional Notes</FormLabel>
+                                      <FormControl>
+                                        <Textarea 
+                                          placeholder="Any additional notes about this invoice" 
+                                          className="resize-none" 
+                                          rows={4}
+                                          {...field}
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                                
+                                <div className="flex justify-between pt-4">
+                                  <Button 
+                                    type="button" 
+                                    variant="outline" 
+                                    onClick={() => setInvoiceStep(1)}
+                                  >
+                                    Back
+                                  </Button>
+                                  <Button 
+                                    type="submit"
+                                    disabled={isConvertingToInvoice}
+                                  >
+                                    {isConvertingToInvoice ? (
+                                      <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        Creating...
+                                      </>
+                                    ) : (
+                                      <>Create Invoice</>
+                                    )}
+                                  </Button>
+                                </div>
+                              </form>
+                            </Form>
+                          </>
+                        )}
+
+                        {invoiceStep === 3 && (
+                          <>
+                            <DialogHeader>
+                              <DialogTitle>Invoice Created</DialogTitle>
+                              <DialogDescription>
+                                Your invoice has been created successfully.
+                              </DialogDescription>
+                            </DialogHeader>
+                            
+                            <div className="py-6">
+                              <Card>
+                                <CardHeader className="pb-3">
+                                  <CardTitle className="text-center text-green-600">
+                                    <div className="flex justify-center mb-2">
+                                      <CheckCircle2 className="h-12 w-12" />
+                                    </div>
+                                    Success!
+                                  </CardTitle>
+                                  <CardDescription className="text-center">
+                                    Your invoice has been created and is ready for tracking.
+                                  </CardDescription>
+                                </CardHeader>
+                                <CardContent className="text-center space-y-2">
+                                  <p><strong>Amount:</strong> ${form.getValues("amount").toFixed(2)}</p>
+                                  <p><strong>Client:</strong> {selectedProposal?.contact?.name}</p>
+                                </CardContent>
+                                <CardFooter className="flex justify-center gap-4">
+                                  <Button
+                                    variant="outline"
+                                    onClick={() => {
+                                      resetInvoiceProcess();
+                                      setInvoiceStep(1);
+                                    }}
+                                  >
+                                    Close
+                                  </Button>
+                                  <Button
+                                    onClick={() => {
+                                      navigate("/invoices");
+                                    }}
+                                  >
+                                    View Invoices
+                                  </Button>
+                                </CardFooter>
+                              </Card>
+                            </div>
+                          </>
+                        )}
                       </DialogContent>
                     </Dialog>
                   </TableCell>
