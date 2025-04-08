@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { format, isPast, parseISO } from "date-fns";
 import { supabase } from "@/lib/supabase";
-import { Contact, Deal } from "@/lib/supabase";
 
 export type Notification = {
   id: string;
@@ -11,11 +10,6 @@ export type Notification = {
   client: string;
   date: string;
   type: 'proposal' | 'invoice';
-};
-
-// Type for the database query results with properly typed contact
-type DealWithContact = Deal & {
-  contact?: Contact | null;
 };
 
 export const useNotifications = () => {
@@ -69,13 +63,13 @@ export const useNotifications = () => {
       if (invoicesError) throw invoicesError;
       
       // Process proposals to find those with past due_date
-      const proposalNotifications = (overdueProposals as DealWithContact[])
+      const proposalNotifications = overdueProposals
         .filter(proposal => proposal.due_date && isPast(parseISO(proposal.due_date)))
         .map(proposal => {
           // Check if contact exists and is properly structured
           let clientName = 'Unknown Client';
-          if (proposal.contact && typeof proposal.contact === 'object') {
-            clientName = (proposal.contact as Contact).name || 'Unknown Client';
+          if (proposal.contact && typeof proposal.contact === 'object' && !Array.isArray(proposal.contact)) {
+            clientName = proposal.contact.name || 'Unknown Client';
           }
           
           return {
@@ -88,13 +82,13 @@ export const useNotifications = () => {
         });
       
       // Process invoices to find those with past due_date
-      const invoiceNotifications = (overdueInvoices as DealWithContact[])
+      const invoiceNotifications = overdueInvoices
         .filter(invoice => invoice.due_date && isPast(parseISO(invoice.due_date)))
         .map(invoice => {
           // Check if contact exists and is properly structured
           let clientName = 'Unknown Client';
-          if (invoice.contact && typeof invoice.contact === 'object') {
-            clientName = (invoice.contact as Contact).name || 'Unknown Client';
+          if (invoice.contact && typeof invoice.contact === 'object' && !Array.isArray(invoice.contact)) {
+            clientName = invoice.contact.name || 'Unknown Client';
           }
           
           return {
