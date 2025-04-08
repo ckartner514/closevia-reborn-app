@@ -61,11 +61,15 @@ export const ProposalDetailsDialog = ({
   const [dueDate, setDueDate] = useState<Date | undefined>(
     proposal?.due_date ? parseISO(proposal.due_date) : undefined
   );
+  // Add a new state to track the current status
+  const [currentStatus, setCurrentStatus] = useState<string>(proposal?.status || '');
 
   useEffect(() => {
     if (proposal) {
       fetchComments();
       setDueDate(proposal.due_date ? parseISO(proposal.due_date) : undefined);
+      // Update the current status when proposal changes
+      setCurrentStatus(proposal.status);
     }
   }, [proposal]);
 
@@ -137,7 +141,11 @@ export const ProposalDetailsDialog = ({
   };
 
   const handleStatusChange = (newStatus: string) => {
-    onStatusChange(proposal!.id, newStatus);
+    if (!proposal) return;
+    // Update the local state immediately
+    setCurrentStatus(newStatus);
+    // Also trigger the parent's status change handler
+    onStatusChange(proposal.id, newStatus);
   };
 
   const handleDueDateChange = async (date: Date | undefined) => {
@@ -176,7 +184,7 @@ export const ProposalDetailsDialog = ({
       <DialogHeader>
         <DialogTitle className="flex items-center justify-between">
           <span>Proposal Details</span>
-          <ProposalStatusBadge status={proposal.status} />
+          <ProposalStatusBadge status={currentStatus} />
         </DialogTitle>
         <DialogDescription>
           Created on {format(parseISO(proposal.created_at), "PPP")}
@@ -196,7 +204,7 @@ export const ProposalDetailsDialog = ({
           <Label htmlFor="status-select">Proposal Status</Label>
           <Select
             disabled={isUpdatingStatus}
-            value={proposal.status}
+            value={currentStatus}
             onValueChange={handleStatusChange}
           >
             <SelectTrigger id="status-select" className="w-full">
@@ -310,7 +318,7 @@ export const ProposalDetailsDialog = ({
         </div>
 
         <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto mt-2 sm:mt-0">
-          {proposal.status === 'accepted' && (
+          {currentStatus === 'accepted' && (
             <Button
               variant="default"
               size="sm"
