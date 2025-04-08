@@ -1,5 +1,4 @@
 
-import { useState } from "react";
 import { Contact } from "@/lib/supabase";
 import { 
   Table, 
@@ -11,7 +10,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, Search, X } from "lucide-react";
+import { Loader2, Search, X, Trash2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 
 interface ContactListProps {
@@ -20,6 +19,7 @@ interface ContactListProps {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   onContactSelect: (contact: Contact) => void;
+  onDeleteContact?: (contactId: string) => void;
 }
 
 const ContactList = ({ 
@@ -27,7 +27,8 @@ const ContactList = ({
   loading, 
   searchQuery, 
   setSearchQuery, 
-  onContactSelect 
+  onContactSelect,
+  onDeleteContact
 }: ContactListProps) => {
   const filteredContacts = contacts.filter(contact => {
     const searchLower = searchQuery.toLowerCase();
@@ -86,6 +87,7 @@ const ContactList = ({
                 <TableHead className="hidden md:table-cell">Email</TableHead>
                 <TableHead className="hidden md:table-cell">Phone</TableHead>
                 <TableHead>Last Interaction</TableHead>
+                {onDeleteContact && <TableHead className="w-10"></TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -93,17 +95,46 @@ const ContactList = ({
                 <TableRow
                   key={contact.id}
                   className="cursor-pointer hover:bg-muted/50"
-                  onClick={() => onContactSelect(contact)}
                 >
-                  <TableCell>{contact.name}</TableCell>
-                  <TableCell>{contact.company}</TableCell>
-                  <TableCell className="hidden md:table-cell">{contact.email}</TableCell>
-                  <TableCell className="hidden md:table-cell">{contact.phone}</TableCell>
-                  <TableCell>
+                  <TableCell 
+                    className="font-medium hover:text-primary transition-colors"
+                    onClick={() => onContactSelect(contact)}
+                  >
+                    {contact.name}
+                  </TableCell>
+                  <TableCell onClick={() => onContactSelect(contact)}>{contact.company}</TableCell>
+                  <TableCell 
+                    className="hidden md:table-cell"
+                    onClick={() => onContactSelect(contact)}
+                  >
+                    {contact.email}
+                  </TableCell>
+                  <TableCell 
+                    className="hidden md:table-cell"
+                    onClick={() => onContactSelect(contact)}
+                  >
+                    {contact.phone}
+                  </TableCell>
+                  <TableCell onClick={() => onContactSelect(contact)}>
                     {contact.last_interaction 
                       ? format(parseISO(contact.last_interaction), "PP") 
                       : "Not set"}
                   </TableCell>
+                  {onDeleteContact && (
+                    <TableCell className="p-2 text-right">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDeleteContact(contact.id);
+                        }}
+                        className="hover:bg-muted text-muted-foreground hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
             </TableBody>
