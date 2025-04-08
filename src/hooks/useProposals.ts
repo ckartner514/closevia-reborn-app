@@ -35,10 +35,20 @@ export const useProposals = (userId: string | undefined) => {
       
       console.log("Fetched proposals:", data);
       
-      const proposalsWithContacts = data.map((item: any) => ({
-        ...item,
-        contact: item.contact,
-      }));
+      // Ensure each status is a valid status type from our ProposalWithContact type
+      const proposalsWithContacts = data.map((item: any) => {
+        const status = item.status.toLowerCase();
+        // Make sure status is one of the allowed values
+        const validStatus = (['open', 'accepted', 'refused', 'lost', 'pending'] as const).includes(status as any)
+          ? status
+          : 'open'; // Default to 'open' if we get an unexpected status
+          
+        return {
+          ...item,
+          status: validStatus,
+          contact: item.contact,
+        };
+      }) as ProposalWithContact[];
       
       setProposals(proposalsWithContacts);
     } catch (error) {
@@ -63,8 +73,13 @@ export const useProposals = (userId: string | undefined) => {
       if (error) throw error;
       
       // Update the local state with the new status
+      // Ensuring the status is type-safe
+      const validStatus = (['open', 'accepted', 'refused', 'lost', 'pending'] as const).includes(newStatus as any)
+        ? newStatus as 'open' | 'accepted' | 'refused' | 'lost' | 'pending'
+        : 'open';
+        
       setProposals(proposals.map(p => 
-        p.id === proposalId ? { ...p, status: newStatus } : p
+        p.id === proposalId ? { ...p, status: validStatus } : p
       ));
       
       toast.success(`Proposal marked as ${newStatus}`);

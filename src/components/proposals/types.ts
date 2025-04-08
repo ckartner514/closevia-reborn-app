@@ -8,7 +8,7 @@ export type Proposal = {
   notes: string | null;
   amount: number;
   due_date: string | null;
-  status: 'open' | 'accepted' | 'refused';
+  status: 'open' | 'accepted' | 'refused' | 'lost' | 'pending';
   created_at: string;
   user_id: string;
 };
