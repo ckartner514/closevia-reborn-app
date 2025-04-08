@@ -1,7 +1,6 @@
-
 import { format, parseISO } from "date-fns";
 import { useState, useEffect } from "react";
-import { CheckCircle, XCircle, FileText, Trash2, Calendar } from "lucide-react";
+import { CheckCircle, XCircle, FileText, Trash2, Calendar, Download } from "lucide-react";
 import { ProposalWithContact } from "./types";
 import { ProposalStatusBadge } from "./ProposalStatusBadge";
 import { Button } from "@/components/ui/button";
@@ -28,6 +27,7 @@ import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
+import { generateProposalPdf } from "@/utils/pdfGenerator";
 
 type ProposalComment = {
   id: string;
@@ -61,14 +61,13 @@ export const ProposalDetailsDialog = ({
   const [dueDate, setDueDate] = useState<Date | undefined>(
     proposal?.due_date ? parseISO(proposal.due_date) : undefined
   );
-  // Add a new state to track the current status
   const [currentStatus, setCurrentStatus] = useState<string>(proposal?.status || '');
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
   useEffect(() => {
     if (proposal) {
       fetchComments();
       setDueDate(proposal.due_date ? parseISO(proposal.due_date) : undefined);
-      // Update the current status when proposal changes
       setCurrentStatus(proposal.status);
     }
   }, [proposal]);
@@ -142,9 +141,7 @@ export const ProposalDetailsDialog = ({
 
   const handleStatusChange = (newStatus: string) => {
     if (!proposal) return;
-    // Update the local state immediately
     setCurrentStatus(newStatus);
-    // Also trigger the parent's status change handler
     onStatusChange(proposal.id, newStatus);
   };
 
@@ -167,6 +164,21 @@ export const ProposalDetailsDialog = ({
       setDueDate(proposal.due_date ? parseISO(proposal.due_date) : undefined);
     } finally {
       setIsUpdatingDueDate(false);
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!proposal) return;
+    
+    try {
+      setIsGeneratingPdf(true);
+      await generateProposalPdf(proposal, comments);
+      toast.success("PDF generated successfully");
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      toast.error("Failed to generate PDF");
+    } finally {
+      setIsGeneratingPdf(false);
     }
   };
 
@@ -199,7 +211,6 @@ export const ProposalDetailsDialog = ({
           </p>
         </div>
 
-        {/* Status Selector */}
         <div className="grid gap-2">
           <Label htmlFor="status-select">Proposal Status</Label>
           <Select
@@ -308,6 +319,16 @@ export const ProposalDetailsDialog = ({
           >
             <Trash2 className="h-4 w-4 mr-2" />
             Delete
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleDownloadPdf}
+            disabled={isGeneratingPdf}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            {isGeneratingPdf ? 'Generating...' : 'Download PDF'}
           </Button>
 
           <DialogClose asChild>
