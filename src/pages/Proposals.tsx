@@ -12,21 +12,35 @@ import { ProposalEmptyState } from "@/components/proposals/ProposalEmptyState";
 import { ProposalWithContact } from "@/components/proposals/types";
 import { useProposals } from "@/hooks/useProposals";
 import { toast } from "sonner";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const ProposalsPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [selectedProposal, setSelectedProposal] = useState<ProposalWithContact | null>(null);
+  const [proposalToDelete, setProposalToDelete] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   
   const {
     proposals,
     loading,
     isUpdatingStatus,
     isConvertingToInvoice,
+    isDeletingProposal,
     fetchProposals,
     handleStatusChange,
-    handleConvertToInvoice
+    handleConvertToInvoice,
+    deleteProposal
   } = useProposals(user?.id);
 
   const handleCreateNewProposal = () => {
@@ -55,6 +69,25 @@ const ProposalsPage = () => {
     }
   };
 
+  const handleDeleteProposal = async () => {
+    if (!proposalToDelete) return;
+    
+    const success = await deleteProposal(proposalToDelete);
+    if (success) {
+      setDeleteDialogOpen(false);
+      setProposalToDelete(null);
+      // If the deleted proposal was selected, clear the selection
+      if (selectedProposal && selectedProposal.id === proposalToDelete) {
+        setSelectedProposal(null);
+      }
+    }
+  };
+
+  const onDeleteClick = (proposalId: string) => {
+    setProposalToDelete(proposalId);
+    setDeleteDialogOpen(true);
+  };
+
   const filteredProposals = filterStatus === "all" 
     ? proposals 
     : proposals.filter(p => p.status === filterStatus);
@@ -79,6 +112,7 @@ const ProposalsPage = () => {
           <ProposalTable
             proposals={filteredProposals}
             onSelectProposal={setSelectedProposal}
+            onDeleteProposal={onDeleteClick}
           />
           
           <ProposalDetailsDialog
@@ -87,9 +121,31 @@ const ProposalsPage = () => {
             isConvertingToInvoice={isConvertingToInvoice}
             onStatusChange={handleStatusChange}
             onConvertToInvoice={handleConvertSelectedToInvoice}
+            onDeleteProposal={onDeleteClick}
           />
         </Dialog>
       )}
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure you want to delete this proposal?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the proposal from your account.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteProposal}
+              disabled={isDeletingProposal}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeletingProposal ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

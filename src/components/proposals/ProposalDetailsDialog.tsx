@@ -1,28 +1,26 @@
 
-import { useState } from "react";
 import { format, parseISO } from "date-fns";
-import { Check, DollarSign, FileText, Loader2, X } from "lucide-react";
-import { 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogDescription,
-  DialogFooter
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { cn } from "@/lib/utils";
+import { Printer, CheckCircle, XCircle, FileText, Trash2 } from "lucide-react";
 import { ProposalWithContact } from "./types";
-import { ProposalStatusBadge, getStatusColor } from "./ProposalStatusBadge";
-import { toast } from "sonner";
+import { ProposalStatusBadge } from "./ProposalStatusBadge";
+import { Button } from "@/components/ui/button";
+import {
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
 
 interface ProposalDetailsDialogProps {
   proposal: ProposalWithContact | null;
   isUpdatingStatus: boolean;
   isConvertingToInvoice: boolean;
-  onStatusChange: (proposalId: string, status: 'open' | 'accepted' | 'refused') => Promise<void>;
-  onConvertToInvoice: () => Promise<void>;
+  onStatusChange: (proposalId: string, newStatus: 'open' | 'accepted' | 'refused') => void;
+  onConvertToInvoice: () => void;
+  onDeleteProposal: (proposalId: string) => void;
 }
 
 export const ProposalDetailsDialog = ({
@@ -30,149 +28,154 @@ export const ProposalDetailsDialog = ({
   isUpdatingStatus,
   isConvertingToInvoice,
   onStatusChange,
-  onConvertToInvoice
+  onConvertToInvoice,
+  onDeleteProposal
 }: ProposalDetailsDialogProps) => {
-  const [error, setError] = useState<string | null>(null);
-
-  const handleConvertClick = async () => {
-    try {
-      setError(null);
-      await onConvertToInvoice();
-    } catch (err: any) {
-      setError(err?.message || "Failed to create invoice");
-      console.error("Error in convert click handler:", err);
-    }
-  };
-
   if (!proposal) return null;
 
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(amount);
+  };
+
   return (
-    <DialogContent className="sm:max-w-md">
+    <DialogContent className="sm:max-w-xl">
       <DialogHeader>
-        <DialogTitle>Proposal Details</DialogTitle>
+        <DialogTitle className="flex items-center justify-between">
+          <span>Proposal Details</span>
+          <ProposalStatusBadge status={proposal.status} />
+        </DialogTitle>
         <DialogDescription>
           Created on {format(parseISO(proposal.created_at), "PPP")}
         </DialogDescription>
       </DialogHeader>
-      
-      <div className="grid gap-4 py-4">
-        <div className="space-y-2">
-          <div className="flex justify-between">
-            <h3 className="text-lg font-medium">{proposal.title}</h3>
-            <ProposalStatusBadge status={proposal.status} />
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium">Client:</span>
-            <span className="text-sm">
-              {proposal.contact?.name} ({proposal.contact?.company})
-            </span>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium">Amount:</span>
-            <span className="text-sm">${proposal.amount.toFixed(2)}</span>
-          </div>
-          
-          {proposal.due_date && (
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium">Follow-up:</span>
-              <span className="text-sm">
-                {format(parseISO(proposal.due_date), "PPP")}
-              </span>
-            </div>
-          )}
-          
-          {proposal.notes && (
-            <div className="mt-4">
-              <Label className="mb-2 block">Description</Label>
-              <Textarea 
-                value={proposal.notes}
-                readOnly
-                className="resize-none"
-                rows={4}
-              />
-            </div>
-          )}
+
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-lg font-semibold">{proposal.title}</h3>
+          <p className="text-sm text-muted-foreground">
+            Amount: {formatCurrency(proposal.amount)}
+          </p>
         </div>
-        
-        <div className="space-y-2">
-          <Label>Update Status</Label>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className={cn(
-                "flex-1 gap-1",
-                proposal.status === "open" 
-                  ? "border-yellow-500 bg-yellow-50" 
-                  : ""
-              )}
-              onClick={() => onStatusChange(proposal.id, "open")}
-              disabled={isUpdatingStatus}
-            >
-              <FileText className="h-4 w-4" />
-              Open
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className={cn(
-                "flex-1 gap-1",
-                proposal.status === "accepted" 
-                  ? "border-green-500 bg-green-50" 
-                  : ""
-              )}
-              onClick={() => onStatusChange(proposal.id, "accepted")}
-              disabled={isUpdatingStatus}
-            >
-              <Check className="h-4 w-4" />
-              Accepted
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className={cn(
-                "flex-1 gap-1",
-                proposal.status === "refused" 
-                  ? "border-red-500 bg-red-50" 
-                  : ""
-              )}
-              onClick={() => onStatusChange(proposal.id, "refused")}
-              disabled={isUpdatingStatus}
-            >
-              <X className="h-4 w-4" />
-              Refused
-            </Button>
+
+        <Separator />
+
+        <div className="grid gap-2">
+          <div className="font-semibold">Contact Information</div>
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <div>
+              <p className="text-muted-foreground">Name</p>
+              <p>{proposal.contact?.name}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Company</p>
+              <p>{proposal.contact?.company}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Email</p>
+              <p>{proposal.contact?.email}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Phone</p>
+              <p>{proposal.contact?.phone || '-'}</p>
+            </div>
           </div>
         </div>
-        
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-md text-sm">
-            {error}
-          </div>
+
+        {proposal.notes && (
+          <>
+            <Separator />
+            <div>
+              <div className="font-semibold mb-2">Notes</div>
+              <p className="text-sm whitespace-pre-wrap">{proposal.notes}</p>
+            </div>
+          </>
+        )}
+
+        {proposal.due_date && (
+          <>
+            <Separator />
+            <div>
+              <p className="text-muted-foreground text-sm">Follow-up Date</p>
+              <p>{format(parseISO(proposal.due_date), "PPP")}</p>
+            </div>
+          </>
         )}
       </div>
-      
-      <DialogFooter>
-        {proposal.status === "accepted" && (
+
+      <DialogFooter className="flex-col sm:flex-row gap-2">
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
           <Button
-            onClick={handleConvertClick}
-            disabled={isConvertingToInvoice}
+            variant="outline"
+            size="sm"
+            onClick={handlePrint}
+            className="sm:mr-2"
           >
-            {isConvertingToInvoice ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Creating...
-              </>
-            ) : (
-              <>
-                <DollarSign className="mr-2 h-4 w-4" />
-                Convert to Invoice
-              </>
-            )}
+            <Printer className="h-4 w-4 mr-2" />
+            Print
           </Button>
-        )}
+
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => onDeleteProposal(proposal.id)}
+            className="sm:mr-2"
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Delete
+          </Button>
+
+          <DialogClose asChild>
+            <Button variant="outline" size="sm">
+              Close
+            </Button>
+          </DialogClose>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+          {proposal.status === 'open' && (
+            <>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => onStatusChange(proposal.id, 'refused')}
+                disabled={isUpdatingStatus}
+                className="sm:mr-2"
+              >
+                <XCircle className="h-4 w-4 mr-2" />
+                Mark Refused
+              </Button>
+
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => onStatusChange(proposal.id, 'accepted')}
+                disabled={isUpdatingStatus}
+              >
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Mark Accepted
+              </Button>
+            </>
+          )}
+
+          {proposal.status === 'accepted' && (
+            <Button
+              variant="default"
+              size="sm"
+              onClick={onConvertToInvoice}
+              disabled={isConvertingToInvoice}
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              {isConvertingToInvoice ? 'Converting...' : 'Convert to Invoice'}
+            </Button>
+          )}
+        </div>
       </DialogFooter>
     </DialogContent>
   );

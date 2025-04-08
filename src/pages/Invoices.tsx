@@ -12,6 +12,16 @@ import { InvoiceFilters } from "@/components/invoices/InvoiceFilters";
 import { InvoiceSummary } from "@/components/invoices/InvoiceSummary";
 import { InvoiceTable } from "@/components/invoices/InvoiceTable";
 import { InvoiceEmptyState } from "@/components/invoices/InvoiceEmptyState";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // Import custom hook
 import { useInvoices } from "@/hooks/useInvoices";
@@ -22,8 +32,10 @@ const InvoicesPage = () => {
     invoices, 
     loading, 
     isUpdatingStatus,
+    isDeletingInvoice,
     fetchInvoices, 
-    updateInvoiceStatus 
+    updateInvoiceStatus,
+    deleteInvoice
   } = useInvoices(user?.id);
   
   const [searchQuery, setSearchQuery] = useState("");
@@ -31,6 +43,8 @@ const InvoicesPage = () => {
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [dateOpen, setDateOpen] = useState(false);
+  const [invoiceToDelete, setInvoiceToDelete] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   
   useEffect(() => {
     if (!user) return;
@@ -95,6 +109,25 @@ const InvoicesPage = () => {
     setDateRange(undefined);
   };
 
+  const handleDeleteInvoice = async () => {
+    if (!invoiceToDelete) return;
+    
+    const success = await deleteInvoice(invoiceToDelete);
+    if (success) {
+      setDeleteDialogOpen(false);
+      setInvoiceToDelete(null);
+    }
+  };
+
+  const onDeleteClick = (invoiceId: string) => {
+    setInvoiceToDelete(invoiceId);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleStatusChange = async (invoiceId: string, newStatus: string) => {
+    await updateInvoiceStatus(invoiceId, newStatus);
+  };
+
   const filteredInvoices = invoices.filter(invoice => {
     if (selectedContactId && selectedContactId !== "all" && invoice.contact_id !== selectedContactId) {
       return false;
@@ -128,10 +161,6 @@ const InvoicesPage = () => {
 
   const hasFilters = !!(searchQuery || selectedContactId || dateRange);
 
-  const handleStatusChange = async (invoiceId: string, newStatus: string) => {
-    await updateInvoiceStatus(invoiceId, newStatus);
-  };
-
   return (
     <div className="space-y-6">
       <InvoiceHeader 
@@ -161,11 +190,33 @@ const InvoicesPage = () => {
           <InvoiceTable 
             invoices={filteredInvoices} 
             onStatusChange={handleStatusChange}
+            onDeleteInvoice={onDeleteClick}
           />
         </>
       ) : (
         <InvoiceEmptyState loading={loading} hasFilters={hasFilters} />
       )}
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure you want to delete this invoice?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the invoice from your account.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteInvoice}
+              disabled={isDeletingInvoice}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeletingInvoice ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

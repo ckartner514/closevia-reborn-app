@@ -10,16 +10,17 @@ import {
   TableCell 
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, Clock } from "lucide-react";
+import { CheckCircle, Clock, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 interface InvoiceTableProps {
   invoices: InvoiceWithContact[];
   onStatusChange?: (invoiceId: string, status: string) => Promise<void>;
+  onDeleteInvoice?: (invoiceId: string) => void;
 }
 
-export const InvoiceTable = ({ invoices, onStatusChange }: InvoiceTableProps) => {
+export const InvoiceTable = ({ invoices, onStatusChange, onDeleteInvoice }: InvoiceTableProps) => {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   const handleStatusToggle = async (invoice: InvoiceWithContact) => {
@@ -49,7 +50,7 @@ export const InvoiceTable = ({ invoices, onStatusChange }: InvoiceTableProps) =>
             <TableHead>Amount</TableHead>
             <TableHead className="hidden md:table-cell">Due Date</TableHead>
             <TableHead>Status</TableHead>
-            {onStatusChange && <TableHead className="text-right">Actions</TableHead>}
+            <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -77,25 +78,37 @@ export const InvoiceTable = ({ invoices, onStatusChange }: InvoiceTableProps) =>
                   {invoice.invoice_status === "paid" ? "Paid" : "Pending"}
                 </div>
               </TableCell>
-              {onStatusChange && (
-                <TableCell className="text-right">
-                  <Button 
-                    variant={invoice.invoice_status === "pending" ? "default" : "outline"} 
-                    size="sm" 
-                    onClick={() => handleStatusToggle(invoice)}
-                    disabled={updatingId === invoice.id}
-                    className={`text-xs ${invoice.invoice_status === "pending" ? "bg-primary hover:bg-primary/90" : ""}`}
-                  >
-                    {updatingId === invoice.id ? (
-                      "Updating..."
-                    ) : invoice.invoice_status === "pending" ? (
-                      "Mark as Paid"
-                    ) : (
-                      "Mark as Pending"
-                    )}
-                  </Button>
-                </TableCell>
-              )}
+              <TableCell className="text-right">
+                <div className="flex items-center justify-end space-x-2">
+                  {onDeleteInvoice && (
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => onDeleteInvoice(invoice.id)}
+                      className="text-destructive hover:text-destructive/90 hover:bg-destructive/10"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                  {onStatusChange && (
+                    <Button 
+                      variant={invoice.invoice_status === "pending" ? "default" : "outline"} 
+                      size="sm" 
+                      onClick={() => handleStatusToggle(invoice)}
+                      disabled={updatingId === invoice.id}
+                      className={`text-xs ${invoice.invoice_status === "pending" ? "bg-primary hover:bg-primary/90" : ""}`}
+                    >
+                      {updatingId === invoice.id ? (
+                        "Updating..."
+                      ) : invoice.invoice_status === "pending" ? (
+                        "Mark as Paid"
+                      ) : (
+                        "Mark as Pending"
+                      )}
+                    </Button>
+                  )}
+                </div>
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>

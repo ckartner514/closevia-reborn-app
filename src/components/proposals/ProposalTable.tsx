@@ -1,6 +1,6 @@
 
 import { format, parseISO } from "date-fns";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, Trash2 } from "lucide-react";
 import { 
   Table, 
   TableHeader, 
@@ -17,9 +17,10 @@ import { ProposalWithContact } from "./types";
 interface ProposalTableProps {
   proposals: ProposalWithContact[];
   onSelectProposal: (proposal: ProposalWithContact) => void;
+  onDeleteProposal: (proposalId: string) => void;
 }
 
-export const ProposalTable = ({ proposals, onSelectProposal }: ProposalTableProps) => {
+export const ProposalTable = ({ proposals, onSelectProposal, onDeleteProposal }: ProposalTableProps) => {
   return (
     <div className="rounded-md border">
       <Table>
@@ -49,7 +50,15 @@ export const ProposalTable = ({ proposals, onSelectProposal }: ProposalTableProp
               <TableCell>
                 <ProposalStatusBadge status={proposal.status} />
               </TableCell>
-              <TableCell className="text-right">
+              <TableCell className="text-right flex items-center justify-end space-x-1">
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={() => onDeleteProposal(proposal.id)}
+                  className="text-destructive hover:text-destructive/90 hover:bg-destructive/10"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
                 <DialogTrigger asChild>
                   <Button 
                     variant="ghost" 

@@ -8,6 +8,7 @@ export const useInvoices = (userId: string | undefined) => {
   const [invoices, setInvoices] = useState<InvoiceWithContact[]>([]);
   const [loading, setLoading] = useState(true);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [isDeletingInvoice, setIsDeletingInvoice] = useState(false);
   
   useEffect(() => {
     if (!userId) return;
@@ -87,11 +88,42 @@ export const useInvoices = (userId: string | undefined) => {
     }
   };
 
+  const deleteInvoice = async (invoiceId: string) => {
+    try {
+      setIsDeletingInvoice(true);
+      
+      const { error } = await supabase
+        .from("deals")
+        .delete()
+        .eq("id", invoiceId)
+        .eq("user_id", userId);
+
+      if (error) {
+        console.error("Error deleting invoice:", error);
+        throw error;
+      }
+      
+      // Update local state
+      setInvoices(invoices.filter(invoice => invoice.id !== invoiceId));
+      
+      toast.success("Invoice deleted successfully");
+      return true;
+    } catch (error) {
+      console.error("Error deleting invoice:", error);
+      toast.error("Failed to delete invoice");
+      return false;
+    } finally {
+      setIsDeletingInvoice(false);
+    }
+  };
+
   return {
     invoices,
     loading,
     isUpdatingStatus,
+    isDeletingInvoice,
     fetchInvoices,
-    updateInvoiceStatus
+    updateInvoiceStatus,
+    deleteInvoice
   };
 };
