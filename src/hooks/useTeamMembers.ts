@@ -30,30 +30,34 @@ export const useTeamMembers = (user: User | null) => {
       try {
         const { data, error } = await supabase
           .from("user_organizations")
-          .select(
-            `
+          .select(`
             role,
             org_id,
             organizations (
               id,
               name
             )
-          `
-          )
+          `)
           .eq("user_id", user.id)
-          .single();
+          .single() as Promise<{
+            data: {
+              role: string;
+              org_id: string;
+              organizations: {
+                id: string;
+                name: string;
+              };
+            } | null;
+            error: any;
+          }>;
 
         if (error) throw error;
 
         if (data && data.organizations) {
-          const orgName = Array.isArray(data.organizations)
-            ? data.organizations[0]?.name
-            : data.organizations?.name;
-
           setCurrentOrg({
             id: data.org_id,
-            name: orgName || "Unknown Organization",
-            userRole: data.role,
+            name: data.organizations.name,
+            userRole: data.role
           });
         }
       } catch (error) {
@@ -112,9 +116,9 @@ export const useTeamMembers = (user: User | null) => {
 
           return {
             id: orgUser.user_id,
-            email: email,
+            email,
             full_name: profileData?.full_name || "",
-            role: orgUser.role,
+            role: orgUser.role
           };
         });
 
@@ -150,11 +154,13 @@ export const useTeamMembers = (user: User | null) => {
         return false;
       }
 
-      const { error } = await supabase.from("invitations").insert({
-        email,
-        org_id: currentOrg.id,
-        role,
-      });
+      const { error } = await supabase
+        .from("invitations")
+        .insert({
+          email,
+          org_id: currentOrg.id,
+          role
+        });
 
       if (error) throw error;
 
@@ -171,6 +177,6 @@ export const useTeamMembers = (user: User | null) => {
     members,
     loading,
     currentOrg,
-    inviteMember,
+    inviteMember
   };
 };
