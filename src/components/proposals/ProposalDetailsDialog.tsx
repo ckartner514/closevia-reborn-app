@@ -1,7 +1,7 @@
 
 import { format, parseISO } from "date-fns";
 import { useState, useEffect } from "react";
-import { CheckCircle, XCircle, FileText, Trash2 } from "lucide-react";
+import { CheckCircle, XCircle, FileText, Trash2, Calendar } from "lucide-react";
 import { ProposalWithContact } from "./types";
 import { ProposalStatusBadge } from "./ProposalStatusBadge";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,9 @@ import { Label } from "@/components/ui/label";
 import ContactComments from "@/components/contacts/ContactComments";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 
 type ProposalComment = {
   id: string;
@@ -54,10 +57,15 @@ export const ProposalDetailsDialog = ({
   const [comments, setComments] = useState<ProposalComment[]>([]);
   const [newComment, setNewComment] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isUpdatingDueDate, setIsUpdatingDueDate] = useState(false);
+  const [dueDate, setDueDate] = useState<Date | undefined>(
+    proposal?.due_date ? parseISO(proposal.due_date) : undefined
+  );
 
   useEffect(() => {
     if (proposal) {
       fetchComments();
+      setDueDate(proposal.due_date ? parseISO(proposal.due_date) : undefined);
     }
   }, [proposal]);
 
@@ -128,6 +136,32 @@ export const ProposalDetailsDialog = ({
     }
   };
 
+  const handleStatusChange = (newStatus: string) => {
+    onStatusChange(proposal!.id, newStatus);
+  };
+
+  const handleDueDateChange = async (date: Date | undefined) => {
+    if (!proposal || !date) return;
+    
+    setIsUpdatingDueDate(true);
+    try {
+      const { error } = await supabase
+        .from("deals")
+        .update({ due_date: date.toISOString().split('T')[0] })
+        .eq("id", proposal.id);
+
+      if (error) throw error;
+      
+      toast.success("Follow-up date updated");
+    } catch (error) {
+      console.error("Error updating due date:", error);
+      toast.error("Failed to update follow-up date");
+      setDueDate(proposal.due_date ? parseISO(proposal.due_date) : undefined);
+    } finally {
+      setIsUpdatingDueDate(false);
+    }
+  };
+
   if (!proposal) return null;
 
   const formatCurrency = (amount: number) => {
@@ -135,10 +169,6 @@ export const ProposalDetailsDialog = ({
       style: 'currency',
       currency: 'USD',
     }).format(amount);
-  };
-
-  const handleStatusChange = (newStatus: string) => {
-    onStatusChange(proposal.id, newStatus);
   };
 
   return (
@@ -206,15 +236,37 @@ export const ProposalDetailsDialog = ({
           </div>
         </div>
 
-        {proposal.due_date && (
-          <>
-            <Separator />
-            <div>
-              <p className="text-muted-foreground text-sm">Follow-up Date</p>
-              <p>{format(parseISO(proposal.due_date), "PPP")}</p>
-            </div>
-          </>
-        )}
+        <Separator />
+        
+        <div>
+          <p className="text-muted-foreground text-sm mb-2">Follow-up Date</p>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button 
+                variant="outline" 
+                className={cn(
+                  "w-full justify-start text-left font-normal",
+                  !dueDate && "text-muted-foreground"
+                )}
+              >
+                <Calendar className="mr-2 h-4 w-4" />
+                {dueDate ? format(dueDate, "PPP") : "Set follow-up date"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <CalendarComponent
+                mode="single"
+                selected={dueDate}
+                onSelect={(date) => {
+                  setDueDate(date);
+                  handleDueDateChange(date);
+                }}
+                initialFocus
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
 
         {proposal.notes && (
           <>

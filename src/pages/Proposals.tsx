@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -106,6 +107,15 @@ const ProposalsPage = () => {
     setIsDetailsOpen(true);
   };
 
+  const handleDialogOpenChange = (open: boolean) => {
+    setIsDetailsOpen(open);
+    if (!open) {
+      setSelectedProposal(null);
+      // Refresh proposals list to reflect any changes made in the dialog
+      fetchProposals();
+    }
+  };
+
   const filteredProposals = filterStatus === "all" 
     ? proposals 
     : proposals.filter(p => p.status === filterStatus);
@@ -133,10 +143,7 @@ const ProposalsPage = () => {
           
           <Dialog 
             open={isDetailsOpen} 
-            onOpenChange={(open) => {
-              setIsDetailsOpen(open);
-              if (!open) setSelectedProposal(null);
-            }}
+            onOpenChange={handleDialogOpenChange}
           >
             <ProposalDetailsDialog
               proposal={selectedProposal}
