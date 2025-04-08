@@ -12,6 +12,20 @@ export type Notification = {
   type: 'proposal' | 'invoice';
 };
 
+// Define a type for the contact object returned from Supabase
+type ContactData = {
+  id: string;
+  name: string;
+};
+
+// Define a type for the deal/proposal records returned from Supabase
+type DealRecord = {
+  id: string;
+  title: string;
+  due_date: string | null;
+  contact: ContactData | null;
+};
+
 export const useNotifications = () => {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -63,7 +77,7 @@ export const useNotifications = () => {
       if (invoicesError) throw invoicesError;
       
       // Process proposals to find those with past due_date
-      const proposalNotifications = overdueProposals
+      const proposalNotifications = (overdueProposals as DealRecord[])
         .filter(proposal => proposal.due_date && isPast(parseISO(proposal.due_date)))
         .map(proposal => ({
           id: proposal.id,
@@ -74,7 +88,7 @@ export const useNotifications = () => {
         }));
       
       // Process invoices to find those with past due_date
-      const invoiceNotifications = overdueInvoices
+      const invoiceNotifications = (overdueInvoices as DealRecord[])
         .filter(invoice => invoice.due_date && isPast(parseISO(invoice.due_date)))
         .map(invoice => ({
           id: invoice.id,
