@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
@@ -44,25 +43,22 @@ const InvoicesPage = () => {
     deleteInvoice
   } = useInvoices(user?.id);
   
-  // Search and basic filters
   const [searchQuery, setSearchQuery] = useState("");
   const [contacts, setContacts] = useState<{ id: string; name: string; company: string }[]>([]);
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [dateOpen, setDateOpen] = useState(false);
   
-  // Advanced filters
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [selectedAmountRange, setSelectedAmountRange] = useState<string>("all");
   const [selectedDueRange, setSelectedDueRange] = useState<string>("all");
   
-  // UI state
   const [invoiceToDelete, setInvoiceToDelete] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [highlightedInvoiceId, setHighlightedInvoiceId] = useState<string | null>(null);
   const [selectedInvoice, setSelectedInvoice] = useState<InvoiceWithContact | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  
+
   useEffect(() => {
     const query = new URLSearchParams(location.search);
     const invoiceId = query.get('highlightInvoice');
@@ -170,7 +166,6 @@ const InvoicesPage = () => {
 
   const handleStatusChange = async (invoiceId: string, newStatus: string) => {
     await updateInvoiceStatus(invoiceId, newStatus);
-    // Update the invoice in the UI after status change
     if (selectedInvoice && selectedInvoice.id === invoiceId) {
       setSelectedInvoice({
         ...selectedInvoice,
@@ -187,30 +182,24 @@ const InvoicesPage = () => {
   const handleDrawerOpenChange = (open: boolean) => {
     setDrawerOpen(open);
     if (!open) {
-      // Refetch invoices when drawer is closed to ensure UI is updated
       fetchInvoices();
     }
   };
 
-  // Filter invoices based on all criteria
   const filteredInvoices = useMemo(() => {
     return invoices.filter(invoice => {
-      // Filter by contact
       if (selectedContactId && invoice.contact_id !== selectedContactId) {
         return false;
       }
       
-      // Filter by status
       if (selectedStatus !== "all" && invoice.invoice_status !== selectedStatus) {
         return false;
       }
       
-      // Filter by amount range
       if (selectedAmountRange !== "all" && !filterByAmountRange(invoice.amount, selectedAmountRange)) {
         return false;
       }
       
-      // Filter by due date range
       if (selectedDueRange !== "all") {
         if (selectedDueRange === "thisWeek" && !isWithinWeek(invoice.due_date)) {
           return false;
@@ -231,7 +220,6 @@ const InvoicesPage = () => {
         }
       }
       
-      // Filter by custom date range (if not already filtered by due date range)
       if (dateRange?.from && selectedDueRange === "all") {
         if (!invoice.due_date) return false;
         
@@ -244,7 +232,6 @@ const InvoicesPage = () => {
         }
       }
       
-      // Filter by search query
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
         const matchesContact = 

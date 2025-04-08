@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Search, X, RefreshCw, CalendarIcon, FilterIcon } from "lucide-react";
 import { format, startOfMonth, endOfMonth, subMonths, addDays, startOfWeek, endOfWeek } from "date-fns";
@@ -170,14 +171,14 @@ export const InvoiceFilters = ({
               <div className="space-y-2">
                 <label className="text-sm font-medium">Contact</label>
                 <Select 
-                  value={selectedContactId || ""} 
-                  onValueChange={(value) => setSelectedContactId(value || null)}
+                  value={selectedContactId || "all"} 
+                  onValueChange={(value) => setSelectedContactId(value === "all" ? null : value)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="All contacts" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All contacts</SelectItem>
+                    <SelectItem value="all">All contacts</SelectItem>
                     {contacts.map(contact => (
                       <SelectItem key={contact.id} value={contact.id}>
                         {contact.name} ({contact.company})
