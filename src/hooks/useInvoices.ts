@@ -3,19 +3,17 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { InvoiceWithContact } from "@/components/invoices/types";
 import { toast } from "sonner";
-import { useOrganization } from "./useOrganization";
 
 export const useInvoices = (userId: string | undefined) => {
   const [invoices, setInvoices] = useState<InvoiceWithContact[]>([]);
   const [loading, setLoading] = useState(true);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isDeletingInvoice, setIsDeletingInvoice] = useState(false);
-  const { organization } = useOrganization();
   
   useEffect(() => {
-    if (!userId || !organization) return;
+    if (!userId) return;
     fetchInvoices();
-  }, [userId, organization]);
+  }, [userId]);
 
   const fetchInvoices = async () => {
     try {

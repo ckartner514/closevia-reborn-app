@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
@@ -8,9 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TeamManagement } from "@/components/settings/TeamManagement";
-import { useRole } from "@/contexts/RoleContext";
 
 // Define the Profile type
 type Profile = {
@@ -21,7 +17,6 @@ type Profile = {
 
 const Settings = () => {
   const { user } = useAuth();
-  const { isAdmin } = useRole();
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [profile, setProfile] = useState<Profile>({
@@ -29,7 +24,6 @@ const Settings = () => {
     company: "",
     phone: "",
   });
-  const [activeTab, setActiveTab] = useState("profile");
 
   useEffect(() => {
     if (!user) return;
@@ -121,138 +115,120 @@ const Settings = () => {
     <div className="space-y-6">
       <h1 className="page-title">Account Settings</h1>
       
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="mb-6">
-          <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="team">Team</TabsTrigger>
-          <TabsTrigger value="account">Account</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="profile">
-          <div className="grid gap-6 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Profile Information</CardTitle>
-                <CardDescription>
-                  Update your personal information
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {loading ? (
-                  <div className="flex items-center justify-center py-6">
-                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email</Label>
-                      <Input 
-                        id="email"
-                        type="email"
-                        value={user?.email || ""}
-                        disabled
-                        className="bg-muted"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Your email address is managed through Supabase Auth
-                      </p>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="name">Full Name</Label>
-                      <Input 
-                        id="name"
-                        value={profile.full_name}
-                        onChange={(e) => setProfile({ ...profile, full_name: e.target.value })}
-                        placeholder="John Doe"
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="company">Company</Label>
-                      <Input 
-                        id="company"
-                        value={profile.company}
-                        onChange={(e) => setProfile({ ...profile, company: e.target.value })}
-                        placeholder="Acme Inc."
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="phone">Phone</Label>
-                      <Input 
-                        id="phone"
-                        value={profile.phone}
-                        onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-                        placeholder="(123) 456-7890"
-                      />
-                    </div>
-                    
-                    <Button
-                      className="w-full mt-2"
-                      onClick={handleSaveProfile}
-                      disabled={isSaving}
-                    >
-                      {isSaving ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Saving...
-                        </>
-                      ) : (
-                        <>
-                          <Save className="mr-2 h-4 w-4" />
-                          Save Changes
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="team">
-          <TeamManagement />
-        </TabsContent>
-        
-        <TabsContent value="account">
-          <div className="grid gap-6 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Account Management</CardTitle>
-                <CardDescription>
-                  Manage your account settings
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="text-sm font-medium mb-2">Data Storage</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Your data is securely stored in your Supabase project. All client information, proposals, and invoices are protected with Row Level Security (RLS) policies.
-                    </p>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-sm font-medium mb-2">Data Privacy</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Closevia only shows you data that belongs to your organization. Other organizations cannot access your contacts, proposals, or invoices.
-                    </p>
-                  </div>
-                  
-                  <div className="pt-4">
-                    <h3 className="text-sm font-medium mb-2">Need help?</h3>
-                    <p className="text-sm text-muted-foreground">
-                      If you need assistance with your account or have any questions about Closevia, please contact support.
-                    </p>
-                  </div>
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Profile Information</CardTitle>
+            <CardDescription>
+              Update your personal information
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="flex items-center justify-center py-6">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input 
+                    id="email"
+                    type="email"
+                    value={user?.email || ""}
+                    disabled
+                    className="bg-muted"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Your email address is managed through Supabase Auth
+                  </p>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-      </Tabs>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="name">Full Name</Label>
+                  <Input 
+                    id="name"
+                    value={profile.full_name}
+                    onChange={(e) => setProfile({ ...profile, full_name: e.target.value })}
+                    placeholder="John Doe"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="company">Company</Label>
+                  <Input 
+                    id="company"
+                    value={profile.company}
+                    onChange={(e) => setProfile({ ...profile, company: e.target.value })}
+                    placeholder="Acme Inc."
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone</Label>
+                  <Input 
+                    id="phone"
+                    value={profile.phone}
+                    onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                    placeholder="(123) 456-7890"
+                  />
+                </div>
+                
+                <Button
+                  className="w-full mt-2"
+                  onClick={handleSaveProfile}
+                  disabled={isSaving}
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="mr-2 h-4 w-4" />
+                      Save Changes
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>Account Management</CardTitle>
+            <CardDescription>
+              Manage your account settings
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-medium mb-2">Data Storage</h3>
+                <p className="text-sm text-muted-foreground">
+                  Your data is securely stored in your Supabase project. All client information, proposals, and invoices are protected with Row Level Security (RLS) policies.
+                </p>
+              </div>
+              
+              <div>
+                <h3 className="text-sm font-medium mb-2">Data Privacy</h3>
+                <p className="text-sm text-muted-foreground">
+                  Closevia only shows you data that belongs to your account. Other users cannot access your contacts, proposals, or invoices.
+                </p>
+              </div>
+              
+              <div className="pt-4">
+                <h3 className="text-sm font-medium mb-2">Need help?</h3>
+                <p className="text-sm text-muted-foreground">
+                  If you need assistance with your account or have any questions about Closevia, please contact support.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

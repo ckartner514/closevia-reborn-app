@@ -1,7 +1,7 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { format, subMonths, isAfter, parseISO, isBefore, subDays, addDays } from "date-fns";
-import { useOrganization } from "./useOrganization";
 
 export type Period = "3months" | "6months" | "1year";
 
@@ -30,12 +30,11 @@ export const useDashboardData = (userId: string | undefined) => {
   const [overdueInvoices, setOverdueInvoices] = useState<number>(0);
   const [upcomingInvoices, setUpcomingInvoices] = useState<any[]>([]);
   const [period, setPeriod] = useState<Period>("6months");
-  const { organization } = useOrganization();
 
   useEffect(() => {
-    if (!userId || !organization) return;
+    if (!userId) return;
     fetchData();
-  }, [userId, organization, period]);
+  }, [userId, period]);
 
   const fetchData = async () => {
     setLoading(true);
