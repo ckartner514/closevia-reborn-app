@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { supabase, Invoice } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { 
   Card, 
@@ -11,34 +11,30 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
-  LineChart, 
-  ResponsiveContainer, 
-  Line, 
-  XAxis, 
-  YAxis, 
-  Tooltip, 
-  CartesianGrid, 
   BarChart, 
   Bar,
   PieChart,
   Pie,
   Cell,
+  Tooltip,
+  ResponsiveContainer,
+  XAxis,
+  YAxis,
+  CartesianGrid,
   Legend
 } from "recharts";
 import { 
   ArrowDownToLine, 
-  Loader2, 
-  RefreshCw
+  Loader2,
+  DollarSign
 } from "lucide-react";
 import { 
   format, 
-  subMonths, 
   parseISO, 
-  startOfMonth, 
-  endOfMonth, 
+  startOfYear,
+  endOfYear,
   eachMonthOfInterval,
-  isSameMonth,
-  getMonth
+  isSameMonth
 } from "date-fns";
 import {
   Select,
@@ -47,37 +43,31 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { InvoiceTable } from "@/components/invoices/InvoiceTable";
+import { InvoiceWithContact } from "@/components/invoices/types";
 import { toast } from "sonner";
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
 const PaymentsPage = () => {
   const { user } = useAuth();
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [paidInvoices, setPaidInvoices] = useState<InvoiceWithContact[]>([]);
   const [loading, setLoading] = useState(true);
-  const [chartData, setChartData] = useState<any[]>([]);
-  const [contactData, setContactData] = useState<any[]>([]);
-  const [yearFilter, setYearFilter] = useState(new Date().getFullYear().toString());
-  const [chartType, setChartType] = useState("monthly");
+  const [monthlyRevenue, setMonthlyRevenue] = useState<any[]>([]);
+  const [clientRevenue, setClientRevenue] = useState<any[]>([]);
+  const [yearFilter, setYearFilter] = useState<string>(new Date().getFullYear().toString());
   
   useEffect(() => {
     if (!user) return;
-    fetchInvoices();
-  }, [user]);
+    fetchPaidInvoices();
+  }, [user, yearFilter]);
   
-  useEffect(() => {
-    if (invoices.length > 0) {
-      prepareChartData();
-      prepareContactData();
-    }
-  }, [invoices, yearFilter, chartType]);
-  
-  const fetchInvoices = async () => {
+  const fetchPaidInvoices = async () => {
     try {
       setLoading(true);
+      
       const { data, error } = await supabase
-        .from("invoices")
+        .from("deals")
         .select(`
           *,
           contact:contact_id (
@@ -85,117 +75,109 @@ const PaymentsPage = () => {
           )
         `)
         .eq("user_id", user!.id)
-        .order("created_at", { ascending: true });
+        .eq("status", "invoice")
+        .eq("invoice_status", "paid")
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
       
-      // Process the data to standardize format
-      const processedInvoices = data.map((item: any) => ({
+      console.log("Fetched paid invoices:", data);
+      
+      // Filter invoices by year
+      const year = parseInt(yearFilter);
+      const filteredInvoices = data.filter((invoice: any) => {
+        const invoiceDate = parseISO(invoice.created_at);
+        return invoiceDate.getFullYear() === year;
+      });
+      
+      const invoicesWithContacts = filteredInvoices.map((item: any) => ({
         ...item,
         contact: item.contact
       }));
       
-      setInvoices(processedInvoices);
+      setPaidInvoices(invoicesWithContacts);
+      
+      // Prepare chart data
+      prepareChartData(invoicesWithContacts);
+      prepareClientData(invoicesWithContacts);
     } catch (error) {
-      console.error("Error fetching invoice data:", error);
+      console.error("Error fetching paid invoices:", error);
       toast.error("Failed to load payment data");
     } finally {
       setLoading(false);
     }
   };
   
-  const prepareChartData = () => {
-    // Filter invoices for the selected year
-    const filteredInvoices = invoices.filter(invoice => {
+  const prepareChartData = (invoices: InvoiceWithContact[]) => {
+    // Create all months for the selected year
+    const year = parseInt(yearFilter);
+    const startDate = startOfYear(new Date(year, 0, 1));
+    const endDate = endOfYear(new Date(year, 0, 1));
+    
+    const monthsData = eachMonthOfInterval({ 
+      start: startDate, 
+      end: endDate 
+    }).map(date => ({
+      name: format(date, "MMM"),
+      revenue: 0,
+      count: 0
+    }));
+    
+    // Populate with invoice data
+    invoices.forEach(invoice => {
       const invoiceDate = parseISO(invoice.created_at);
-      return invoiceDate.getFullYear().toString() === yearFilter;
+      const monthIndex = invoiceDate.getMonth();
+      
+      monthsData[monthIndex].revenue += invoice.amount;
+      monthsData[monthIndex].count += 1;
     });
     
-    if (chartType === "monthly") {
-      // Create all months for the selected year
-      const year = parseInt(yearFilter);
-      const startDate = new Date(year, 0, 1); // January 1st
-      const endDate = new Date(year, 11, 31); // December 31st
-      
-      const months = eachMonthOfInterval({ start: startDate, end: endDate }).map(date => ({
-        month: format(date, "MMM"),
-        total: 0,
-        count: 0
-      }));
-      
-      // Populate with invoice data
-      filteredInvoices.forEach(invoice => {
-        const invoiceDate = parseISO(invoice.created_at);
-        const monthIndex = invoiceDate.getMonth();
-        
-        months[monthIndex].total += invoice.amount;
-        months[monthIndex].count += 1;
-      });
-      
-      setChartData(months);
-    } else if (chartType === "quarterly") {
-      // Create quarters for the selected year
-      const quarters = [
-        { quarter: "Q1", total: 0, count: 0 },
-        { quarter: "Q2", total: 0, count: 0 },
-        { quarter: "Q3", total: 0, count: 0 },
-        { quarter: "Q4", total: 0, count: 0 }
-      ];
-      
-      // Populate with invoice data
-      filteredInvoices.forEach(invoice => {
-        const invoiceDate = parseISO(invoice.created_at);
-        const month = invoiceDate.getMonth();
-        const quarterIndex = Math.floor(month / 3);
-        
-        quarters[quarterIndex].total += invoice.amount;
-        quarters[quarterIndex].count += 1;
-      });
-      
-      setChartData(quarters);
-    }
+    setMonthlyRevenue(monthsData);
   };
   
-  const prepareContactData = () => {
-    // Filter invoices for the selected year
-    const filteredInvoices = invoices.filter(invoice => {
-      const invoiceDate = parseISO(invoice.created_at);
-      return invoiceDate.getFullYear().toString() === yearFilter;
-    });
+  const prepareClientData = (invoices: InvoiceWithContact[]) => {
+    // Aggregate by client
+    const clientMap = new Map<string, number>();
     
-    // Aggregate by contact
-    const contactMap = new Map();
-    
-    filteredInvoices.forEach(invoice => {
-      const contactName = invoice.contact?.name || "Unknown";
+    invoices.forEach(invoice => {
+      const clientName = invoice.contact?.name || "Unknown";
       
-      if (contactMap.has(contactName)) {
-        contactMap.set(contactName, contactMap.get(contactName) + invoice.amount);
+      if (clientMap.has(clientName)) {
+        clientMap.set(clientName, clientMap.get(clientName)! + invoice.amount);
       } else {
-        contactMap.set(contactName, invoice.amount);
+        clientMap.set(clientName, invoice.amount);
       }
     });
     
     // Convert to array for chart
-    const contactChartData = Array.from(contactMap.entries())
-      .map(([name, amount]) => ({ name, amount }))
-      .sort((a, b) => b.amount - a.amount)
+    const clientData = Array.from(clientMap.entries())
+      .map(([name, amount]) => ({ name, value: amount }))
+      .sort((a, b) => b.value - a.value)
       .slice(0, 5); // Top 5 clients
     
-    setContactData(contactChartData);
+    setClientRevenue(clientData);
   };
   
   const handleExportCSV = () => {
+    if (paidInvoices.length === 0) {
+      toast.error("No payment data to export");
+      return;
+    }
+    
     const headers = [
-      "Month/Quarter",
-      "Total Amount",
-      "Invoice Count",
+      "Date",
+      "Contact",
+      "Company",
+      "Amount",
+      "Invoice Title"
     ];
     
-    const rows = chartData.map((item) => [
-      item.month || item.quarter,
-      item.total.toFixed(2),
-      item.count,
+    const rows = paidInvoices.map((invoice) => [
+      format(parseISO(invoice.created_at), "MM/dd/yyyy"),
+      invoice.contact?.name || "Unknown",
+      invoice.contact?.company || "Unknown",
+      invoice.amount.toFixed(2),
+      invoice.title
     ]);
     
     const csvContent = [
@@ -207,23 +189,23 @@ const PaymentsPage = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `revenue_${yearFilter}_${chartType}.csv`);
+    link.setAttribute("download", `payments_${yearFilter}_export.csv`);
     link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     
-    toast.success("Revenue data exported to CSV");
+    toast.success("Payment data exported to CSV");
   };
   
-  // Generate yearly options (last 5 years)
+  // Generate year options (last 5 years)
   const yearOptions = Array.from({ length: 5 }, (_, i) => {
     const year = new Date().getFullYear() - i;
     return year.toString();
   });
   
-  // Calculate total revenue for the selected period
-  const totalRevenue = chartData.reduce((sum, item) => sum + item.total, 0);
+  // Calculate total revenue
+  const totalRevenue = paidInvoices.reduce((sum, invoice) => sum + invoice.amount, 0);
   
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -231,7 +213,7 @@ const PaymentsPage = () => {
         <div className="bg-background p-2 border rounded shadow-sm">
           <p className="font-medium">{`${label}`}</p>
           <p className="text-primary">{`Revenue: $${typeof payload[0].value === 'number' ? payload[0].value.toFixed(2) : payload[0].value}`}</p>
-          <p className="text-sm text-muted-foreground">{`Invoices: ${payload[1].value}`}</p>
+          {payload[1] && <p className="text-sm text-muted-foreground">{`Invoices: ${payload[1].value}`}</p>}
         </div>
       );
     }
@@ -262,7 +244,7 @@ const PaymentsPage = () => {
             variant="outline"
             onClick={handleExportCSV}
             className="gap-2"
-            disabled={chartData.length === 0}
+            disabled={paidInvoices.length === 0}
           >
             <ArrowDownToLine className="h-4 w-4" />
             Export CSV
@@ -281,7 +263,7 @@ const PaymentsPage = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle>Revenue Overview - {yearFilter}</CardTitle>
-                  <CardDescription>Track your revenue performance</CardDescription>
+                  <CardDescription>Payments collected</CardDescription>
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-medium">Total Revenue</p>
@@ -290,78 +272,80 @@ const PaymentsPage = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <Tabs defaultValue="monthly" onValueChange={setChartType} value={chartType}>
-                <TabsList className="mb-4">
-                  <TabsTrigger value="monthly">Monthly</TabsTrigger>
-                  <TabsTrigger value="quarterly">Quarterly</TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="monthly" className="space-y-4">
-                  <div className="h-[350px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={chartData}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="month" />
-                        <YAxis yAxisId="left" orientation="left" stroke="#0ea5e9" />
-                        <YAxis yAxisId="right" orientation="right" stroke="#94a3b8" />
-                        <Tooltip content={<CustomTooltip />} />
-                        <Bar yAxisId="left" dataKey="total" fill="#0ea5e9" name="Revenue" radius={[4, 4, 0, 0]} />
-                        <Bar yAxisId="right" dataKey="count" fill="#94a3b8" name="Invoices" radius={[4, 4, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="quarterly" className="space-y-4">
-                  <div className="h-[350px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={chartData}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="quarter" />
-                        <YAxis yAxisId="left" orientation="left" stroke="#0ea5e9" />
-                        <YAxis yAxisId="right" orientation="right" stroke="#94a3b8" />
-                        <Tooltip content={<CustomTooltip />} />
-                        <Bar yAxisId="left" dataKey="total" fill="#0ea5e9" name="Revenue" radius={[4, 4, 0, 0]} />
-                        <Bar yAxisId="right" dataKey="count" fill="#94a3b8" name="Invoices" radius={[4, 4, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </TabsContent>
-              </Tabs>
+              {paidInvoices.length === 0 ? (
+                <div className="py-8 text-center text-muted-foreground">
+                  <DollarSign className="h-10 w-10 mx-auto mb-3 opacity-40" />
+                  <p>No paid invoices for {yearFilter}</p>
+                </div>
+              ) : (
+                <div className="h-[350px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={monthlyRevenue}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" />
+                      <YAxis 
+                        yAxisId="left" 
+                        orientation="left" 
+                        tickFormatter={(value) => `$${value}`} 
+                      />
+                      <YAxis 
+                        yAxisId="right" 
+                        orientation="right" 
+                        dataKey="count" 
+                      />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Legend />
+                      <Bar 
+                        yAxisId="left" 
+                        dataKey="revenue" 
+                        name="Revenue" 
+                        fill="#0ea5e9" 
+                        radius={[4, 4, 0, 0]} 
+                      />
+                      <Bar 
+                        yAxisId="right" 
+                        dataKey="count" 
+                        name="Invoices" 
+                        fill="#94a3b8" 
+                        radius={[4, 4, 0, 0]} 
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
             </CardContent>
           </Card>
           
           <div className="grid gap-6 md:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle>Top Clients by Revenue</CardTitle>
-                <CardDescription>Your highest revenue-generating clients</CardDescription>
+                <CardTitle>Top Clients</CardTitle>
+                <CardDescription>Revenue by client for {yearFilter}</CardDescription>
               </CardHeader>
               <CardContent>
-                {contactData.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">
-                    No client data available for {yearFilter}
-                  </p>
+                {clientRevenue.length === 0 ? (
+                  <div className="py-16 text-center text-muted-foreground">
+                    No client data available
+                  </div>
                 ) : (
                   <div className="h-[300px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
-                          data={contactData}
+                          data={clientRevenue}
                           cx="50%"
                           cy="50%"
                           labelLine={false}
                           label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                           outerRadius={80}
                           fill="#8884d8"
-                          dataKey="amount"
+                          dataKey="value"
                         >
-                          {contactData.map((entry, index) => (
+                          {clientRevenue.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                           ))}
                         </Pie>
                         <Tooltip formatter={(value) => [`$${typeof value === 'number' ? value.toFixed(2) : value}`, 'Revenue']} />
-                        <Legend />
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
@@ -371,36 +355,39 @@ const PaymentsPage = () => {
             
             <Card>
               <CardHeader>
-                <CardTitle>Revenue Trend</CardTitle>
-                <CardDescription>Monthly progression for {yearFilter}</CardDescription>
+                <CardTitle>Paid Invoices</CardTitle>
+                <CardDescription>Recent payments for {yearFilter}</CardDescription>
               </CardHeader>
               <CardContent>
-                {chartData.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">
-                    No revenue data available for {yearFilter}
-                  </p>
+                {paidInvoices.length === 0 ? (
+                  <div className="py-16 text-center text-muted-foreground">
+                    No paid invoices for this period
+                  </div>
                 ) : (
-                  <div className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={chartData}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey={chartType === "monthly" ? "month" : "quarter"} />
-                        <YAxis tickFormatter={(value) => `$${value}`} />
-                        <Tooltip formatter={(value) => [`$${typeof value === 'number' ? value.toFixed(2) : value}`, 'Revenue']} />
-                        <Line
-                          type="monotone"
-                          dataKey="total"
-                          stroke="#0ea5e9"
-                          strokeWidth={2}
-                          activeDot={{ r: 8 }}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
+                  <div className="max-h-[300px] overflow-y-auto">
+                    <InvoiceTable invoices={paidInvoices.slice(0, 5)} />
+                    {paidInvoices.length > 5 && (
+                      <p className="text-xs text-center mt-2 text-muted-foreground">
+                        Showing 5 of {paidInvoices.length} paid invoices
+                      </p>
+                    )}
                   </div>
                 )}
               </CardContent>
             </Card>
           </div>
+          
+          {paidInvoices.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>All Paid Invoices</CardTitle>
+                <CardDescription>Complete payment history for {yearFilter}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <InvoiceTable invoices={paidInvoices} />
+              </CardContent>
+            </Card>
+          )}
         </>
       )}
     </div>

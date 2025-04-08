@@ -7,6 +7,7 @@ import { toast } from "sonner";
 export const useInvoices = (userId: string | undefined) => {
   const [invoices, setInvoices] = useState<InvoiceWithContact[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   
   useEffect(() => {
     if (!userId) return;
@@ -51,9 +52,46 @@ export const useInvoices = (userId: string | undefined) => {
     }
   };
 
+  const updateInvoiceStatus = async (invoiceId: string, newStatus: string) => {
+    try {
+      setIsUpdatingStatus(true);
+      console.log(`Updating invoice ${invoiceId} status to ${newStatus}`);
+      
+      const { error } = await supabase
+        .from("deals")
+        .update({ invoice_status: newStatus })
+        .eq("id", invoiceId)
+        .eq("user_id", userId);
+
+      if (error) {
+        console.error("Error updating invoice status:", error);
+        throw error;
+      }
+      
+      // Update local state
+      setInvoices(
+        invoices.map(invoice => 
+          invoice.id === invoiceId 
+            ? { ...invoice, invoice_status: newStatus } 
+            : invoice
+        )
+      );
+      
+      toast.success(`Invoice marked as ${newStatus}`);
+    } catch (error) {
+      console.error("Error updating invoice status:", error);
+      toast.error("Failed to update invoice status");
+      throw error;
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
   return {
     invoices,
     loading,
-    fetchInvoices
+    isUpdatingStatus,
+    fetchInvoices,
+    updateInvoiceStatus
   };
 };

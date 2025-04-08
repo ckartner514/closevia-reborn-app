@@ -18,7 +18,13 @@ import { useInvoices } from "@/hooks/useInvoices";
 
 const InvoicesPage = () => {
   const { user } = useAuth();
-  const { invoices, loading } = useInvoices(user?.id);
+  const { 
+    invoices, 
+    loading, 
+    isUpdatingStatus,
+    fetchInvoices, 
+    updateInvoiceStatus 
+  } = useInvoices(user?.id);
   
   const [searchQuery, setSearchQuery] = useState("");
   const [contacts, setContacts] = useState<{ id: string; name: string; company: string }[]>([]);
@@ -53,6 +59,7 @@ const InvoicesPage = () => {
       "Company",
       "Amount",
       "Title",
+      "Status"
     ];
     
     const rows = filteredInvoices.map((invoice) => [
@@ -61,6 +68,7 @@ const InvoicesPage = () => {
       invoice.contact?.company || "",
       invoice.amount.toFixed(2),
       invoice.title,
+      invoice.invoice_status
     ]);
     
     const csvContent = [
@@ -120,6 +128,10 @@ const InvoicesPage = () => {
 
   const hasFilters = !!(searchQuery || selectedContactId || dateRange);
 
+  const handleStatusChange = async (invoiceId: string, newStatus: string) => {
+    await updateInvoiceStatus(invoiceId, newStatus);
+  };
+
   return (
     <div className="space-y-6">
       <InvoiceHeader 
@@ -146,7 +158,10 @@ const InvoicesPage = () => {
             filteredInvoices={filteredInvoices} 
             hasFilters={hasFilters} 
           />
-          <InvoiceTable invoices={filteredInvoices} />
+          <InvoiceTable 
+            invoices={filteredInvoices} 
+            onStatusChange={handleStatusChange}
+          />
         </>
       ) : (
         <InvoiceEmptyState loading={loading} hasFilters={hasFilters} />

@@ -38,16 +38,17 @@ export const useDashboardData = (userId: string | undefined) => {
 
       if (proposalsError) throw proposalsError;
 
-      // Fetch invoices separately
+      // Fetch invoices separately - only PAID invoices count toward revenue
       const { data: invoices, error: invoicesError } = await supabase
         .from("deals")
         .select("*")
         .eq("user_id", userId)
-        .eq("status", "invoice");
+        .eq("status", "invoice")
+        .eq("invoice_status", "paid");
 
       if (invoicesError) throw invoicesError;
 
-      console.log("Fetched invoices for dashboard:", invoices);
+      console.log("Fetched paid invoices for dashboard:", invoices);
       console.log("Fetched proposals for dashboard:", proposals);
 
       // Calculate metrics
@@ -103,7 +104,7 @@ export const useDashboardData = (userId: string | undefined) => {
       currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
     }
 
-    // Populate revenue data from invoices
+    // Populate revenue data from PAID invoices only
     invoices.forEach(invoice => {
       const invoiceDate = parseISO(invoice.created_at);
       if (isAfter(invoiceDate, startDate)) {
