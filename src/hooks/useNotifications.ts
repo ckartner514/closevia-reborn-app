@@ -66,12 +66,10 @@ export const useNotifications = () => {
       const proposalNotifications = overdueProposals
         .filter(proposal => proposal.due_date && isPast(parseISO(proposal.due_date)))
         .map(proposal => {
-          // Use type assertion for the contact property
+          // Check if contact exists and is properly structured
           let clientName = 'Unknown Client';
-          const contact = proposal.contact as { id: string; name: string };
-          
-          if (contact && typeof contact === 'object') {
-            clientName = contact.name || 'Unknown Client';
+          if (proposal.contact && typeof proposal.contact === 'object' && !Array.isArray(proposal.contact)) {
+            clientName = proposal.contact.name || 'Unknown Client';
           }
           
           return {
@@ -87,12 +85,10 @@ export const useNotifications = () => {
       const invoiceNotifications = overdueInvoices
         .filter(invoice => invoice.due_date && isPast(parseISO(invoice.due_date)))
         .map(invoice => {
-          // Use type assertion for the contact property
+          // Check if contact exists and is properly structured
           let clientName = 'Unknown Client';
-          const contact = invoice.contact as { id: string; name: string };
-          
-          if (contact && typeof contact === 'object') {
-            clientName = contact.name || 'Unknown Client';
+          if (invoice.contact && typeof invoice.contact === 'object' && !Array.isArray(invoice.contact)) {
+            clientName = invoice.contact.name || 'Unknown Client';
           }
           
           return {
