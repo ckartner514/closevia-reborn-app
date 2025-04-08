@@ -64,16 +64,22 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				},
 				closevia: {
-					50: '#f0f9ff',
-					100: '#e0f2fe',
-					200: '#bae6fd',
-					300: '#7dd3fc', 
-					400: '#38bdf8',
-					500: '#0ea5e9',
-					600: '#0284c7',
-					700: '#0369a1',
-					800: '#075985',
-					900: '#0c4a6e',
+					primary: '#0D4C8C', // Main blue from logo
+					'primary-light': '#1766BD', // Lighter blue for hover states
+					'primary-dark': '#093A69', // Darker blue for active states
+					'primary-foreground': '#FFFFFF', // White text on primary
+					secondary: '#EBEFF4', // Light blue-gray for secondary elements
+					accent: '#D1DBE8', // Accent color
+					50: '#F0F4F9',
+					100: '#E0EAF2',
+					200: '#C0D5E6',
+					300: '#A1C0D9', 
+					400: '#6595C2',
+					500: '#3A74AD',
+					600: '#0D4C8C',
+					700: '#093A69',
+					800: '#052847',
+					900: '#021624',
 				}
 			},
 			borderRadius: {

@@ -1,24 +1,18 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-// These environment variables are automatically available through the Lovable's Supabase integration
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Use the direct values from the Supabase integration
+const supabaseUrl = "https://xduyycigyknioeqyynfp.supabase.co";
+const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhkdXl5Y2lneWtuaW9lcXl5bmZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM5OTIwMjcsImV4cCI6MjA1OTU2ODAyN30.8_l0FMbt0THLeERo4nHx7S-gtDbyRHH9H_ZJpYEJRk0";
 
-// Check if credentials are available and provide clear error messages
-if (!supabaseUrl) {
-  console.error('Supabase URL is missing. Please make sure your Supabase project is connected properly.');
-}
-
-if (!supabaseKey) {
-  console.error('Supabase anonymous key is missing. Please make sure your Supabase project is connected properly.');
-}
-
-// Create the Supabase client with fallback to empty strings (will show proper UI error instead of crashing)
-export const supabase = createClient(
-  supabaseUrl || 'https://placeholder-url.supabase.co', 
-  supabaseKey || 'placeholder-key'
-);
+// Create the Supabase client with explicit configuration
+export const supabase = createClient(supabaseUrl, supabaseKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    storageKey: 'closevia-auth-storage',
+  }
+});
 
 // Define types for database tables
 export type Contact = {

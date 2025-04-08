@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 const Signup = () => {
   const [email, setEmail] = useState('');
@@ -33,8 +34,11 @@ const Signup = () => {
     try {
       setIsLoading(true);
       await signUp(email, password);
-    } catch (error) {
+      toast.success('Signed up successfully. Please check your email for verification.');
+    } catch (error: any) {
       console.error('Signup error:', error);
+      setError(error.message || 'Failed to sign up');
+      toast.error(error.message || 'Failed to sign up');
     } finally {
       setIsLoading(false);
     }
@@ -44,7 +48,13 @@ const Signup = () => {
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-primary">Closevia</h1>
+          <div className="flex justify-center mb-4">
+            <img 
+              src="/lovable-uploads/5a47ab5e-64c5-4cca-ba44-65797ec9ce47.png" 
+              alt="Closevia Logo" 
+              className="h-20 w-auto"
+            />
+          </div>
           <p className="text-muted-foreground">Create a new account</p>
         </div>
         
@@ -104,7 +114,7 @@ const Signup = () => {
             <CardFooter className="flex flex-col space-y-2">
               <Button 
                 type="submit" 
-                className="w-full" 
+                className="w-full bg-closevia-primary hover:bg-closevia-primary/90" 
                 disabled={isLoading || loading}
               >
                 {isLoading ? (
@@ -119,7 +129,7 @@ const Signup = () => {
               
               <div className="text-center text-sm mt-4">
                 Already have an account?{' '}
-                <Link to="/login" className="text-primary hover:underline">
+                <Link to="/login" className="text-closevia-primary hover:underline">
                   Sign in
                 </Link>
               </div>

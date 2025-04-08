@@ -23,15 +23,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Check active session
     const checkSession = async () => {
-      const { data } = await supabase.auth.getSession();
-      setUser(data.session?.user || null);
-      setLoading(false);
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error("Session error:", error);
+          setLoading(false);
+          return;
+        }
+        
+        setUser(data.session?.user || null);
+      } catch (err) {
+        console.error("Failed to check session:", err);
+      } finally {
+        setLoading(false);
+      }
     };
 
     checkSession();
 
     // Listen for auth changes
     const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("Auth state changed:", event, session?.user?.email);
+      
       if (event === 'SIGNED_IN' && session) {
         setUser(session.user);
         navigate('/dashboard');
@@ -57,6 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       toast.success('Signed in successfully');
     } catch (error: any) {
+      console.error("Sign in error:", error);
       toast.error(error.message || 'Failed to sign in');
       throw error;
     } finally {
@@ -75,6 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       toast.success('Signed up successfully. Please check your email for verification.');
     } catch (error: any) {
+      console.error("Sign up error:", error);
       toast.error(error.message || 'Failed to sign up');
       throw error;
     } finally {
@@ -87,6 +103,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await supabase.auth.signOut();
       toast.success('Signed out successfully');
     } catch (error: any) {
+      console.error("Sign out error:", error);
       toast.error(error.message || 'Failed to sign out');
     }
   };
