@@ -10,7 +10,7 @@ import {
   TableCell 
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Trash2 } from "lucide-react";
+import { Loader2, Trash2, Filter } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -79,46 +79,54 @@ export function InvoiceTable({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {invoices.map((invoice) => (
-            <TableRow 
-              key={invoice.id} 
-              id={`invoice-${invoice.id}`}
-              className={`transition-all ${highlightedInvoiceId === invoice.id ? 'bg-accent' : ''}`}
-            >
-              <TableCell 
-                className="font-medium cursor-pointer hover:text-primary transition-colors"
-                onClick={() => onSelectInvoice && onSelectInvoice(invoice)}
-              >
-                {invoice.title}
+          {invoices.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={readOnly ? 6 : 7} className="h-24 text-center">
+                No results found. Try adjusting your filters.
               </TableCell>
-              <TableCell>
-                {invoice.created_at && format(parseISO(invoice.created_at), "MMM d, yyyy")}
-              </TableCell>
-              <TableCell>
-                <div>
-                  <div className="font-medium">{invoice.contact?.name}</div>
-                  <div className="text-xs text-muted-foreground">{invoice.contact?.company}</div>
-                </div>
-              </TableCell>
-              <TableCell>{formatCurrency(invoice.amount)}</TableCell>
-              <TableCell>
-                {invoice.due_date ? format(parseISO(invoice.due_date), "MMM d, yyyy") : "-"}
-              </TableCell>
-              <TableCell>{getStatusBadge(invoice.invoice_status)}</TableCell>
-              {!readOnly && onDeleteInvoice && (
-                <TableCell className="text-right">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => onDeleteInvoice(invoice.id)}
-                    className="hover:bg-muted text-muted-foreground hover:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </TableCell>
-              )}
             </TableRow>
-          ))}
+          ) : (
+            invoices.map((invoice) => (
+              <TableRow 
+                key={invoice.id} 
+                id={`invoice-${invoice.id}`}
+                className={`transition-all ${highlightedInvoiceId === invoice.id ? 'bg-accent' : ''}`}
+              >
+                <TableCell 
+                  className="font-medium cursor-pointer hover:text-primary transition-colors"
+                  onClick={() => onSelectInvoice && onSelectInvoice(invoice)}
+                >
+                  {invoice.title}
+                </TableCell>
+                <TableCell>
+                  {invoice.created_at && format(parseISO(invoice.created_at), "MMM d, yyyy")}
+                </TableCell>
+                <TableCell>
+                  <div>
+                    <div className="font-medium">{invoice.contact?.name}</div>
+                    <div className="text-xs text-muted-foreground">{invoice.contact?.company}</div>
+                  </div>
+                </TableCell>
+                <TableCell>{formatCurrency(invoice.amount)}</TableCell>
+                <TableCell>
+                  {invoice.due_date ? format(parseISO(invoice.due_date), "MMM d, yyyy") : "-"}
+                </TableCell>
+                <TableCell>{getStatusBadge(invoice.invoice_status)}</TableCell>
+                {!readOnly && onDeleteInvoice && (
+                  <TableCell className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => onDeleteInvoice(invoice.id)}
+                      className="hover:bg-muted text-muted-foreground hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                )}
+              </TableRow>
+            ))
+          )}
         </TableBody>
       </Table>
     </div>

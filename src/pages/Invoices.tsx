@@ -1,8 +1,8 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
-import { format, parseISO, isWithinInterval } from "date-fns";
+import { format, parseISO, isWithinInterval, isAfter, isBefore } from "date-fns";
 import { toast } from "sonner";
 import { DateRange } from "react-day-picker";
 import { useLocation } from "react-router-dom";
@@ -29,6 +29,7 @@ import { Sheet } from "@/components/ui/sheet";
 // Import custom hook
 import { useInvoices } from "@/hooks/useInvoices";
 import { InvoiceWithContact } from "@/components/invoices/types";
+import { filterByAmountRange, isWithinWeek, isWithinNext, isOverdue } from "@/utils/date-utils";
 
 const InvoicesPage = () => {
   const { user } = useAuth();
@@ -43,11 +44,19 @@ const InvoicesPage = () => {
     deleteInvoice
   } = useInvoices(user?.id);
   
+  // Search and basic filters
   const [searchQuery, setSearchQuery] = useState("");
   const [contacts, setContacts] = useState<{ id: string; name: string; company: string }[]>([]);
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [dateOpen, setDateOpen] = useState(false);
+  
+  // Advanced filters
+  const [selectedStatus, setSelectedStatus] = useState<string>("all");
+  const [selectedAmountRange, setSelectedAmountRange] = useState<string>("all");
+  const [selectedDueRange, setSelectedDueRange] = useState<string>("all");
+  
+  // UI state
   const [invoiceToDelete, setInvoiceToDelete] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [highlightedInvoiceId, setHighlightedInvoiceId] = useState<string | null>(null);
@@ -139,6 +148,9 @@ const InvoicesPage = () => {
     setSearchQuery("");
     setSelectedContactId(null);
     setDateRange(undefined);
+    setSelectedStatus("all");
+    setSelectedAmountRange("all");
+    setSelectedDueRange("all");
   };
 
   const handleDeleteInvoice = async () => {
@@ -180,44 +192,96 @@ const InvoicesPage = () => {
     }
   };
 
-  const filteredInvoices = invoices.filter(invoice => {
-    if (selectedContactId && selectedContactId !== "all" && invoice.contact_id !== selectedContactId) {
-      return false;
-    }
-    
-    if (dateRange?.from) {
-      const invoiceDate = parseISO(invoice.created_at);
-      if (dateRange.to) {
-        if (!isWithinInterval(invoiceDate, { start: dateRange.from, end: dateRange.to })) {
+  // Filter invoices based on all criteria
+  const filteredInvoices = useMemo(() => {
+    return invoices.filter(invoice => {
+      // Filter by contact
+      if (selectedContactId && invoice.contact_id !== selectedContactId) {
+        return false;
+      }
+      
+      // Filter by status
+      if (selectedStatus !== "all" && invoice.invoice_status !== selectedStatus) {
+        return false;
+      }
+      
+      // Filter by amount range
+      if (selectedAmountRange !== "all" && !filterByAmountRange(invoice.amount, selectedAmountRange)) {
+        return false;
+      }
+      
+      // Filter by due date range
+      if (selectedDueRange !== "all") {
+        if (selectedDueRange === "thisWeek" && !isWithinWeek(invoice.due_date)) {
           return false;
+        } else if (selectedDueRange === "next30Days" && !isWithinNext(invoice.due_date, 30)) {
+          return false;
+        } else if (selectedDueRange === "overdue" && !isOverdue(invoice.due_date)) {
+          return false;
+        } else if (selectedDueRange === "custom" && dateRange) {
+          if (!invoice.due_date) return false;
+          
+          const dueDate = parseISO(invoice.due_date);
+          const from = dateRange.from;
+          const to = dateRange.to || dateRange.from;
+          
+          if (!isWithinInterval(dueDate, { start: from, end: to })) {
+            return false;
+          }
         }
-      } else {
-        if (invoiceDate < dateRange.from) {
+      }
+      
+      // Filter by custom date range (if not already filtered by due date range)
+      if (dateRange?.from && selectedDueRange === "all") {
+        if (!invoice.due_date) return false;
+        
+        const dueDate = parseISO(invoice.due_date);
+        const from = dateRange.from;
+        const to = dateRange.to || dateRange.from;
+        
+        if (!isWithinInterval(dueDate, { start: from, end: to })) {
           return false;
         }
       }
-    }
-    
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      const matchesContact = invoice.contact?.name.toLowerCase().includes(query) || 
-                            invoice.contact?.company.toLowerCase().includes(query);
-      const matchesTitle = invoice.title.toLowerCase().includes(query);
-      const matchesAmount = invoice.amount.toString().includes(query);
       
-      return matchesContact || matchesTitle || matchesAmount;
-    }
-    
-    return true;
-  });
+      // Filter by search query
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const matchesContact = 
+          (invoice.contact?.name?.toLowerCase().includes(query) || false) || 
+          (invoice.contact?.company?.toLowerCase().includes(query) || false);
+        const matchesTitle = invoice.title.toLowerCase().includes(query);
+        const matchesAmount = invoice.amount.toString().includes(query);
+        
+        return matchesContact || matchesTitle || matchesAmount;
+      }
+      
+      return true;
+    });
+  }, [
+    invoices,
+    searchQuery,
+    selectedContactId,
+    dateRange,
+    selectedStatus,
+    selectedAmountRange,
+    selectedDueRange
+  ]);
 
-  const hasFilters = !!(searchQuery || selectedContactId || dateRange);
+  const hasFilters = !!(
+    searchQuery || 
+    selectedContactId || 
+    dateRange || 
+    selectedStatus !== "all" || 
+    selectedAmountRange !== "all" || 
+    selectedDueRange !== "all"
+  );
 
   return (
     <div className="space-y-6">
       <InvoiceHeader 
         onExportCSV={handleExportCSV} 
-        hasInvoices={filteredInvoices.length > 0} 
+        hasInvoices={invoices.length > 0}
       />
       
       <InvoiceFilters 
@@ -231,6 +295,12 @@ const InvoicesPage = () => {
         dateOpen={dateOpen}
         setDateOpen={setDateOpen}
         clearFilters={clearFilters}
+        selectedStatus={selectedStatus}
+        setSelectedStatus={setSelectedStatus}
+        selectedAmountRange={selectedAmountRange}
+        setSelectedAmountRange={setSelectedAmountRange}
+        selectedDueRange={selectedDueRange}
+        setSelectedDueRange={setSelectedDueRange}
       />
       
       {filteredInvoices.length > 0 ? (

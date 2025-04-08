@@ -1,16 +1,19 @@
-import { useState, useEffect } from "react";
+
+import { useState, useEffect, useMemo } from "react";
 import { supabase, Contact } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Drawer, DrawerTrigger, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerFooter, DrawerClose } from "@/components/ui/drawer";
 import { Plus } from "lucide-react";
-import { parseISO } from "date-fns";
+import { parseISO, subDays } from "date-fns";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import ContactList from "@/components/contacts/ContactList";
 import ContactDetails from "@/components/contacts/ContactDetails";
 import CreateContactForm from "@/components/contacts/CreateContactForm";
+import ContactFilters from "@/components/contacts/ContactFilters";
+import { isWithinWeek, isWithinPast } from "@/utils/date-utils";
 
 type ContactComment = {
   id: string;
@@ -25,7 +28,16 @@ const ContactsPage = () => {
   const isMobile = useIsMobile();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Basic filters
   const [searchQuery, setSearchQuery] = useState("");
+  const [companyFilter, setCompanyFilter] = useState("");
+  const [lastInteractionFilter, setLastInteractionFilter] = useState("all");
+  
+  // Derived data
+  const [uniqueCompanies, setUniqueCompanies] = useState<string[]>([]);
+  
+  // UI state
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [contactComments, setContactComments] = useState<ContactComment[]>([]);
   const [newComment, setNewComment] = useState("");
@@ -47,6 +59,19 @@ const ContactsPage = () => {
     if (!user) return;
     fetchContacts();
   }, [user]);
+
+  useEffect(() => {
+    if (contacts.length > 0) {
+      // Extract unique company names
+      const companies = Array.from(new Set(
+        contacts
+          .map(contact => contact.company)
+          .filter((company): company is string => !!company)
+      )).sort();
+      
+      setUniqueCompanies(companies);
+    }
+  }, [contacts]);
 
   useEffect(() => {
     if (selectedContact) {
@@ -287,6 +312,48 @@ const ContactsPage = () => {
     setEditedContact(prev => ({ ...prev, [field]: value }));
   };
 
+  const clearFilters = () => {
+    setSearchQuery("");
+    setCompanyFilter("");
+    setLastInteractionFilter("all");
+  };
+
+  // Filter contacts based on all criteria
+  const filteredContacts = useMemo(() => {
+    return contacts.filter(contact => {
+      // Filter by company
+      if (companyFilter && contact.company !== companyFilter) {
+        return false;
+      }
+      
+      // Filter by last interaction
+      if (lastInteractionFilter !== "all") {
+        if (lastInteractionFilter === "thisWeek") {
+          if (!isWithinWeek(contact.last_interaction)) {
+            return false;
+          }
+        } else if (lastInteractionFilter === "last30Days") {
+          if (!isWithinPast(contact.last_interaction, 30)) {
+            return false;
+          }
+        } else if (lastInteractionFilter === "noInteraction") {
+          if (contact.last_interaction) {
+            return false;
+          }
+        }
+      }
+      
+      // The search filtering is handled by the ContactList component
+      return true;
+    });
+  }, [contacts, companyFilter, lastInteractionFilter]);
+
+  const hasFilters = !!(
+    companyFilter || 
+    lastInteractionFilter !== "all" || 
+    searchQuery
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -314,8 +381,19 @@ const ContactsPage = () => {
         </Dialog>
       </div>
       
+      <ContactFilters
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        companyFilter={companyFilter}
+        setCompanyFilter={setCompanyFilter}
+        lastInteractionFilter={lastInteractionFilter}
+        setLastInteractionFilter={setLastInteractionFilter}
+        companies={uniqueCompanies}
+        clearFilters={clearFilters}
+      />
+      
       <ContactList
-        contacts={contacts}
+        contacts={filteredContacts}
         loading={loading}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
