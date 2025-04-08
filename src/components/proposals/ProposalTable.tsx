@@ -52,10 +52,10 @@ export const ProposalTable = ({ proposals, onSelectProposal, onDeleteProposal }:
               </TableCell>
               <TableCell className="text-right flex items-center justify-end space-x-1">
                 <Button 
-                  variant="ghost" 
+                  variant="outline" 
                   size="icon"
                   onClick={() => onDeleteProposal(proposal.id)}
-                  className="text-destructive hover:text-destructive/90 hover:bg-destructive/10"
+                  className="hover:bg-muted"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>

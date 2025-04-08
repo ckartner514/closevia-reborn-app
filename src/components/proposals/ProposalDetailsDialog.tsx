@@ -1,6 +1,6 @@
 
 import { format, parseISO } from "date-fns";
-import { Printer, CheckCircle, XCircle, FileText, Trash2 } from "lucide-react";
+import { CheckCircle, XCircle, FileText, Trash2 } from "lucide-react";
 import { ProposalWithContact } from "./types";
 import { ProposalStatusBadge } from "./ProposalStatusBadge";
 import { Button } from "@/components/ui/button";
@@ -33,10 +33,6 @@ export const ProposalDetailsDialog = ({
 }: ProposalDetailsDialogProps) => {
   if (!proposal) return null;
 
-  const handlePrint = () => {
-    window.print();
-  };
-
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -45,7 +41,7 @@ export const ProposalDetailsDialog = ({
   };
 
   return (
-    <DialogContent className="sm:max-w-xl">
+    <DialogContent className="sm:max-w-xl max-h-[85vh] overflow-y-auto">
       <DialogHeader>
         <DialogTitle className="flex items-center justify-between">
           <span>Proposal Details</span>
@@ -109,20 +105,10 @@ export const ProposalDetailsDialog = ({
         )}
       </div>
 
-      <DialogFooter className="flex-col sm:flex-row gap-2">
+      <DialogFooter className="flex-col sm:flex-row gap-2 mt-4">
         <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
           <Button
             variant="outline"
-            size="sm"
-            onClick={handlePrint}
-            className="sm:mr-2"
-          >
-            <Printer className="h-4 w-4 mr-2" />
-            Print
-          </Button>
-
-          <Button
-            variant="destructive"
             size="sm"
             onClick={() => onDeleteProposal(proposal.id)}
             className="sm:mr-2"
@@ -142,7 +128,7 @@ export const ProposalDetailsDialog = ({
           {proposal.status === 'open' && (
             <>
               <Button
-                variant="destructive"
+                variant="outline"
                 size="sm"
                 onClick={() => onStatusChange(proposal.id, 'refused')}
                 disabled={isUpdatingStatus}

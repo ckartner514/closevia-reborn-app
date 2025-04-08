@@ -109,11 +109,15 @@ export function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
           >
             {!collapsed ? (
               <div className="flex items-center gap-2">
-                <img src="/lovable-uploads/5a47ab5e-64c5-4cca-ba44-65797ec9ce47.png" alt="Closevia Logo" className="h-8 w-auto" />
+                <div className="bg-white rounded-full p-1">
+                  <img src="/lovable-uploads/5a47ab5e-64c5-4cca-ba44-65797ec9ce47.png" alt="Closevia Logo" className="h-8 w-auto" />
+                </div>
                 <span className="text-xl">Closevia</span>
               </div>
             ) : (
-              <img src="/lovable-uploads/5a47ab5e-64c5-4cca-ba44-65797ec9ce47.png" alt="Closevia Logo" className="h-7 w-auto" />
+              <div className="bg-white rounded-full p-1">
+                <img src="/lovable-uploads/5a47ab5e-64c5-4cca-ba44-65797ec9ce47.png" alt="Closevia Logo" className="h-7 w-auto" />
+              </div>
             )}
           </Link>
           {!isMobile && (
