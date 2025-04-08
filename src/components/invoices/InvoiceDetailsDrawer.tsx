@@ -63,7 +63,7 @@ export const InvoiceDetailsDrawer = ({
   };
 
   return (
-    <SheetContent className="sm:max-w-xl max-h-[85vh] overflow-y-auto">
+    <SheetContent className="sm:max-w-md w-full overflow-y-auto max-h-screen border-l">
       <SheetHeader>
         <SheetTitle className="flex items-center justify-between">
           <span>Invoice Details</span>
@@ -74,7 +74,7 @@ export const InvoiceDetailsDrawer = ({
         </SheetDescription>
       </SheetHeader>
 
-      <div className="space-y-4">
+      <div className="space-y-4 py-4">
         <div>
           <h3 className="text-lg font-semibold">{invoice.title}</h3>
           <p className="text-sm text-muted-foreground">
