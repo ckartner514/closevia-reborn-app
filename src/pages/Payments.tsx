@@ -144,7 +144,11 @@ const PaymentsPage = () => {
     });
     
     const clientData = Array.from(clientMap.entries())
-      .map(([name, amount]) => ({ name, value: amount }))
+      .map(([name, amount]) => ({ 
+        name: name.length > 15 ? name.substring(0, 12) + '...' : name,
+        fullName: name,
+        value: amount 
+      }))
       .sort((a, b) => b.value - a.value)
       .slice(0, 5);
     
@@ -209,6 +213,27 @@ const PaymentsPage = () => {
       );
     }
     return null;
+  };
+  
+  const CustomPieChartLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, name, fullName }: any) => {
+    const RADIAN = Math.PI / 180;
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+    
+    return (
+      <text 
+        x={x} 
+        y={y} 
+        fill="white" 
+        textAnchor="middle" 
+        dominantBaseline="central"
+        fontSize={12}
+        title={fullName}
+      >
+        {`${name}: ${(percent * 100).toFixed(0)}%`}
+      </text>
+    );
   };
   
   return (
@@ -327,7 +352,7 @@ const PaymentsPage = () => {
                           cx="50%"
                           cy="50%"
                           labelLine={false}
-                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                          label={({ name, percent, fullName }) => CustomPieChartLabel({ cx: "50%", cy: "50%", midAngle: 0, innerRadius: 40, outerRadius: 80, percent, name, fullName })}
                           outerRadius={80}
                           fill="#8884d8"
                           dataKey="value"
@@ -336,7 +361,10 @@ const PaymentsPage = () => {
                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                           ))}
                         </Pie>
-                        <Tooltip formatter={(value) => [`$${typeof value === 'number' ? value.toFixed(2) : value}`, 'Revenue']} />
+                        <Tooltip formatter={(value, name, props) => {
+                          const entry = props.payload;
+                          return [`$${typeof value === 'number' ? value.toFixed(2) : value}`, entry.fullName || entry.name];
+                        }} />
                       </PieChart>
                     </ResponsiveContainer>
                   </div>

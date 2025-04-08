@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Bell, Settings, LogOut, Menu, Trash2 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useNavigate } from "react-router-dom";
 import { useNotifications } from "@/hooks/useNotifications";
+import { supabase } from "@/lib/supabase";
 
 interface HeaderProps {
   collapsed: boolean;
@@ -23,13 +24,36 @@ export function Header({ collapsed, setCollapsed }: HeaderProps) {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const { notifications, markAsViewed, deleteNotification, unviewedCount } = useNotifications();
+  const [userProfile, setUserProfile] = useState<{ full_name?: string } | null>(null);
+  
+  useEffect(() => {
+    if (user) {
+      fetchUserProfile();
+    }
+  }, [user]);
+
+  const fetchUserProfile = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", user!.id)
+        .maybeSingle();
+      
+      if (!error && data) {
+        setUserProfile(data);
+      }
+    } catch (error) {
+      console.error("Error fetching profile:", error);
+    }
+  };
 
   // Get the user's initials from their email or name
   const getInitials = () => {
     if (!user) return "?";
     
-    if (user.user_metadata?.name) {
-      return user.user_metadata.name
+    if (userProfile?.full_name) {
+      return userProfile.full_name
         .split(" ")
         .map((n: string) => n[0])
         .join("")
@@ -75,7 +99,7 @@ export function Header({ collapsed, setCollapsed }: HeaderProps) {
             <Menu className="h-5 w-5" />
           </Button>
           <h1 className="text-lg font-semibold text-foreground md:text-xl">
-            {user?.user_metadata?.company_name || "Closevia Dashboard"}
+            {userProfile?.full_name ? `Welcome back, ${userProfile.full_name.split(" ")[0]}` : user?.email ? `Welcome back, ${user.email.split("@")[0]}` : "Closevia Dashboard"}
           </h1>
         </div>
         
@@ -134,7 +158,7 @@ export function Header({ collapsed, setCollapsed }: HeaderProps) {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center gap-2 px-2">
-                <Avatar className="h-8 w-8 bg-slate-400 text-slate-100 border border-slate-300">
+                <Avatar className="h-8 w-8 bg-slate-400 text-white border border-slate-300">
                   <AvatarFallback>{getInitials()}</AvatarFallback>
                 </Avatar>
                 <span className="hidden font-medium text-sm md:inline-block">
