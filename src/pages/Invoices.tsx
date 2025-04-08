@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
@@ -164,6 +165,16 @@ const InvoicesPage = () => {
     setDrawerOpen(true);
   };
 
+  // Handle drawer open change with data refresh
+  const handleDrawerOpenChange = (open: boolean) => {
+    setDrawerOpen(open);
+    if (!open) {
+      // Refresh data when drawer is closed
+      fetchInvoices();
+      setSelectedInvoice(null);
+    }
+  };
+
   const filteredInvoices = invoices.filter(invoice => {
     if (selectedContactId && selectedContactId !== "all" && invoice.contact_id !== selectedContactId) {
       return false;
@@ -236,7 +247,7 @@ const InvoicesPage = () => {
         <InvoiceEmptyState loading={loading} hasFilters={hasFilters} />
       )}
 
-      <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
+      <Sheet open={drawerOpen} onOpenChange={handleDrawerOpenChange}>
         <InvoiceDetailsDrawer 
           invoice={selectedInvoice} 
           onStatusChange={updateInvoiceStatus}

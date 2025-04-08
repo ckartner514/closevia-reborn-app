@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -110,6 +111,16 @@ const ProposalsPage = () => {
     ? proposals 
     : proposals.filter(p => p.status === filterStatus);
 
+  // Handle dialog close with data refresh
+  const handleDialogOpenChange = (open: boolean) => {
+    setIsDetailsOpen(open);
+    if (!open) {
+      // Refresh data when dialog is closed
+      fetchProposals();
+      setSelectedProposal(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <ProposalFilters
@@ -133,10 +144,7 @@ const ProposalsPage = () => {
           
           <Dialog 
             open={isDetailsOpen} 
-            onOpenChange={(open) => {
-              setIsDetailsOpen(open);
-              if (!open) setSelectedProposal(null);
-            }}
+            onOpenChange={handleDialogOpenChange}
           >
             <ProposalDetailsDialog
               proposal={selectedProposal}
