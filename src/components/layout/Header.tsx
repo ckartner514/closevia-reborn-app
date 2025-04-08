@@ -1,7 +1,7 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { Bell, Settings, LogOut, Menu } from "lucide-react";
+import { Bell, Settings, LogOut, Menu, Trash2 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,7 +22,7 @@ interface HeaderProps {
 export function Header({ collapsed, setCollapsed }: HeaderProps) {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
-  const { notifications, markAsViewed, unviewedCount } = useNotifications();
+  const { notifications, markAsViewed, deleteNotification, unviewedCount } = useNotifications();
 
   // Get the user's initials from their email or name
   const getInitials = () => {
@@ -55,6 +55,11 @@ export function Header({ collapsed, setCollapsed }: HeaderProps) {
       // Navigate to invoices page with a query parameter to highlight the specific invoice
       navigate(`/invoices?highlightInvoice=${notification.id}`);
     }
+  };
+
+  const handleDeleteNotification = (e: React.MouseEvent, notificationId: string) => {
+    e.stopPropagation(); // Prevent triggering the parent click handler
+    deleteNotification(notificationId);
   };
 
   return (
@@ -98,7 +103,17 @@ export function Header({ collapsed, setCollapsed }: HeaderProps) {
                       className={`py-3 px-3 cursor-pointer flex flex-col items-start ${notification.viewed ? 'opacity-70' : ''}`}
                       onClick={() => handleNotificationClick(notification)}
                     >
-                      <div className="font-medium">{notification.title}</div>
+                      <div className="w-full flex justify-between items-start">
+                        <div className="font-medium">{notification.title}</div>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-6 w-6 ml-2 -mr-1 hover:bg-destructive/10" 
+                          onClick={(e) => handleDeleteNotification(e, notification.id)}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
                       <div className="text-sm text-muted-foreground">
                         {notification.type === 'proposal' ? 'Follow-up' : 'Payment'} due: {notification.due_date}
                       </div>

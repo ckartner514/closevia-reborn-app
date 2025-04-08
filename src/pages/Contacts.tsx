@@ -348,8 +348,12 @@ const ContactsPage = () => {
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             className="flex-1"
+            key="comment-textarea"
           />
-          <Button onClick={handleAddComment} disabled={!newComment.trim() || commentLoading}>
+          <Button 
+            onClick={handleAddComment} 
+            disabled={!newComment.trim() || commentLoading}
+          >
             {commentLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add"}
           </Button>
         </div>

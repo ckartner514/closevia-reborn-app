@@ -41,10 +41,13 @@ export const useNotifications = () => {
 
       // Check for viewed notifications in local storage
       const viewedNotifications = JSON.parse(localStorage.getItem('viewedNotifications') || '{}');
+      // Check for deleted notifications in local storage
+      const deletedNotifications = JSON.parse(localStorage.getItem('deletedNotifications') || '{}');
 
       const proposalNotifications: NotificationItem[] =
         (proposals || [])
           .filter((deal) => deal.due_date && isBefore(new Date(deal.due_date), today))
+          .filter((deal) => !deletedNotifications[deal.id]) // Filter out deleted notifications
           .map((deal) => ({
             id: deal.id,
             title: deal.title,
@@ -59,6 +62,7 @@ export const useNotifications = () => {
       const invoiceNotifications: NotificationItem[] =
         (invoices || [])
           .filter((deal) => deal.due_date && isBefore(new Date(deal.due_date), today))
+          .filter((deal) => !deletedNotifications[deal.id]) // Filter out deleted notifications
           .map((deal) => ({
             id: deal.id,
             title: deal.title,
@@ -89,8 +93,19 @@ export const useNotifications = () => {
     localStorage.setItem('viewedNotifications', JSON.stringify(viewedNotifications));
   };
 
+  // Delete a notification
+  const deleteNotification = (notificationId: string) => {
+    // Update local state by removing the notification
+    setNotifications(prev => prev.filter(notification => notification.id !== notificationId));
+    
+    // Store in local storage to persist across sessions
+    const deletedNotifications = JSON.parse(localStorage.getItem('deletedNotifications') || '{}');
+    deletedNotifications[notificationId] = true;
+    localStorage.setItem('deletedNotifications', JSON.stringify(deletedNotifications));
+  };
+
   // Get count of unviewed notifications
   const unviewedCount = notifications.filter(notification => !notification.viewed).length;
 
-  return { notifications, markAsViewed, unviewedCount };
+  return { notifications, markAsViewed, deleteNotification, unviewedCount };
 };
