@@ -1,3 +1,4 @@
+
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { format } from 'date-fns';
@@ -133,8 +134,7 @@ export const generateInvoicePdf = async (invoice: InvoiceWithContact, comments: 
         <h3 style="font-size: 16px; margin-top: 20px; margin-bottom: 10px; color: #0c4a6e;">Contact Information</h3>
         <p style="margin: 5px 0;"><strong>Name:</strong> ${invoice.contact?.name || 'N/A'}</p>
         <p style="margin: 5px 0;"><strong>Company:</strong> ${invoice.contact?.company || 'N/A'}</p>
-        <p style="margin: 5px 0;"><strong>Email:</strong> ${invoice.contact?.email || 'N/A'}</p>
-        <p style="margin: 5px 0;"><strong>Phone:</strong> ${invoice.contact?.phone || 'N/A'}</p>
+        <!-- We don't have email and phone in the InvoiceWithContact type, so we omit them -->
       </div>
       <div style="text-align: right;">
         <div style="background-color: #F1F0FB; padding: 15px; border-radius: 8px; margin-bottom: 10px;">
