@@ -17,8 +17,13 @@ const Dashboard = () => {
   } = useDashboardData(user?.id);
 
   return (
-    <div className="space-y-8">
-      <h1 className="page-title">Dashboard</h1>
+    <div className="space-y-8 animate-fade-in">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+        <h1 className="page-title mb-2 md:mb-0">Dashboard</h1>
+        <p className="text-muted-foreground">
+          Welcome back, {user?.user_metadata?.name || user?.email?.split('@')[0] || 'User'}
+        </p>
+      </div>
       
       {loading ? (
         <DashboardLoading />

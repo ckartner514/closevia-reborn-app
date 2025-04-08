@@ -19,6 +19,11 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 
+interface SidebarProps {
+  collapsed: boolean;
+  setCollapsed: (collapsed: boolean) => void;
+}
+
 const SidebarItem = ({
   icon: Icon,
   label,
@@ -49,11 +54,10 @@ const SidebarItem = ({
   );
 };
 
-export function Sidebar() {
+export function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
   const location = useLocation();
   const { signOut } = useAuth();
   const isMobile = useIsMobile();
-  const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   // Close mobile sidebar when navigating
@@ -103,7 +107,14 @@ export function Sidebar() {
             to="/dashboard"
             className="flex items-center gap-2 font-semibold text-sidebar-foreground"
           >
-            {!collapsed && <span className="text-xl">Closevia</span>}
+            {!collapsed ? (
+              <div className="flex items-center gap-2">
+                <img src="/lovable-uploads/5a47ab5e-64c5-4cca-ba44-65797ec9ce47.png" alt="Closevia Logo" className="h-8 w-auto" />
+                <span className="text-xl">Closevia</span>
+              </div>
+            ) : (
+              <img src="/lovable-uploads/5a47ab5e-64c5-4cca-ba44-65797ec9ce47.png" alt="Closevia Logo" className="h-7 w-auto" />
+            )}
           </Link>
           {!isMobile && (
             <Button

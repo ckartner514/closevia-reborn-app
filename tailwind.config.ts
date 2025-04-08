@@ -64,22 +64,23 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				},
 				closevia: {
-					primary: '#0D4C8C', // Main blue from logo
-					'primary-light': '#1766BD', // Lighter blue for hover states
-					'primary-dark': '#093A69', // Darker blue for active states
+					/* Updated Closevia colors based on the logo */
+					primary: '#0c4a6e', // Main blue from logo
+					'primary-light': '#0d6eac', // Lighter blue for hover states
+					'primary-dark': '#083852', // Darker blue for active states
 					'primary-foreground': '#FFFFFF', // White text on primary
-					secondary: '#EBEFF4', // Light blue-gray for secondary elements
-					accent: '#D1DBE8', // Accent color
-					50: '#F0F4F9',
-					100: '#E0EAF2',
-					200: '#C0D5E6',
-					300: '#A1C0D9', 
-					400: '#6595C2',
-					500: '#3A74AD',
-					600: '#0D4C8C',
-					700: '#093A69',
-					800: '#052847',
-					900: '#021624',
+					secondary: '#EBF2F8', // Light blue-gray for secondary elements
+					accent: '#D1E0ED', // Accent color
+					50: '#F0F8FF', // Lightest blue
+					100: '#E0F0FF',
+					200: '#C0E0FF',
+					300: '#80C0FF',
+					400: '#4090FF',
+					500: '#0c4a6e', // Match logo blue
+					600: '#0c4a6e', // Same as 500 for now
+					700: '#083852', // Darker blue
+					800: '#052847', // Even darker
+					900: '#021624', // Almost black blue
 				}
 			},
 			borderRadius: {

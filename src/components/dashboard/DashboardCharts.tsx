@@ -19,13 +19,13 @@ export const DashboardCharts = ({
   onPeriodChange 
 }: DashboardChartsProps) => {
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle>Performance Metrics</CardTitle>
+    <Card className="border-none shadow-md">
+      <CardHeader className="flex flex-row items-center justify-between pb-2 border-b">
+        <CardTitle className="text-lg font-semibold text-gray-900">Performance Metrics</CardTitle>
         <PeriodSelector period={period} onPeriodChange={onPeriodChange} />
       </CardHeader>
-      <CardContent>
-        <div className="space-y-8">
+      <CardContent className="p-0">
+        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2 p-4">
           <RevenueChart data={revenueData} />
           <ProposalChart data={proposalData} />
         </div>

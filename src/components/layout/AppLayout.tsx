@@ -45,14 +45,14 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <div className="min-h-screen bg-background">
-      <Sidebar />
+      <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
       <main
         className={cn(
           "flex flex-col transition-all duration-300",
           isMobile ? "ml-0" : collapsed ? "ml-16" : "ml-64"
         )}
       >
-        <Header />
+        <Header collapsed={collapsed} setCollapsed={setCollapsed} />
         <div className="closevia-container flex-1 p-6">{children}</div>
       </main>
     </div>

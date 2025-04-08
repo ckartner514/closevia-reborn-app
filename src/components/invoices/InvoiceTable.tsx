@@ -38,9 +38,9 @@ export const InvoiceTable = ({ invoices, onStatusChange }: InvoiceTableProps) =>
   };
 
   return (
-    <div className="rounded-md border">
+    <div className="rounded-md border bg-white shadow-sm overflow-hidden">
       <Table>
-        <TableHeader>
+        <TableHeader className="bg-muted/50">
           <TableRow>
             <TableHead>Created</TableHead>
             <TableHead>Title</TableHead>
@@ -54,25 +54,25 @@ export const InvoiceTable = ({ invoices, onStatusChange }: InvoiceTableProps) =>
         </TableHeader>
         <TableBody>
           {invoices.map((invoice) => (
-            <TableRow key={invoice.id}>
+            <TableRow key={invoice.id} className="hover:bg-muted/30">
               <TableCell>{format(parseISO(invoice.created_at), "PP")}</TableCell>
-              <TableCell>{invoice.title}</TableCell>
+              <TableCell className="font-medium">{invoice.title}</TableCell>
               <TableCell>{invoice.contact?.name}</TableCell>
               <TableCell className="hidden md:table-cell">{invoice.contact?.company}</TableCell>
-              <TableCell>${invoice.amount.toFixed(2)}</TableCell>
+              <TableCell className="font-medium">${invoice.amount.toFixed(2)}</TableCell>
               <TableCell className="hidden md:table-cell">
                 {invoice.due_date ? format(parseISO(invoice.due_date), "PP") : "—"}
               </TableCell>
               <TableCell>
-                <div className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium
+                <div className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium
                   ${invoice.invoice_status === "paid" 
                     ? "bg-green-100 text-green-800" 
                     : "bg-amber-100 text-amber-800"}`
                 }>
                   {invoice.invoice_status === "paid" ? (
-                    <CheckCircle className="w-3 h-3" />
+                    <CheckCircle className="w-3.5 h-3.5" />
                   ) : (
-                    <Clock className="w-3 h-3" />
+                    <Clock className="w-3.5 h-3.5" />
                   )}
                   {invoice.invoice_status === "paid" ? "Paid" : "Pending"}
                 </div>
@@ -80,11 +80,11 @@ export const InvoiceTable = ({ invoices, onStatusChange }: InvoiceTableProps) =>
               {onStatusChange && (
                 <TableCell className="text-right">
                   <Button 
-                    variant="outline" 
+                    variant={invoice.invoice_status === "pending" ? "default" : "outline"} 
                     size="sm" 
                     onClick={() => handleStatusToggle(invoice)}
                     disabled={updatingId === invoice.id}
-                    className="text-xs"
+                    className={`text-xs ${invoice.invoice_status === "pending" ? "bg-primary hover:bg-primary/90" : ""}`}
                   >
                     {updatingId === invoice.id ? (
                       "Updating..."
@@ -102,4 +102,4 @@ export const InvoiceTable = ({ invoices, onStatusChange }: InvoiceTableProps) =>
       </Table>
     </div>
   );
-};
+}
