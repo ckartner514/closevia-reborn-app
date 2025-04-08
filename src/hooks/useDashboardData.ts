@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { format, subMonths, isAfter, parseISO, isBefore, subDays, addDays } from "date-fns";
@@ -85,13 +84,8 @@ export const useDashboardData = (userId: string | undefined) => {
       
       setOverdueInvoices(overdueInvoicesCount);
 
-      // Calculate proposals to follow up (open and last updated > 7 days ago)
-      const sevenDaysAgo = subDays(today, 7);
-      const proposalsToFollowUpCount = proposals.filter(p => {
-        if (p.status !== "open") return false;
-        const createdDate = parseISO(p.created_at);
-        return isBefore(createdDate, sevenDaysAgo);
-      }).length;
+      // Calculate proposals to follow up (all open proposals)
+      const proposalsToFollowUpCount = proposals.filter(p => p.status === "open").length;
       
       setProposalsToFollowUp(proposalsToFollowUpCount);
 
