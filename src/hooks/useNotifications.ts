@@ -68,7 +68,7 @@ export const useNotifications = () => {
         .map(proposal => ({
           id: proposal.id,
           title: proposal.title,
-          client: proposal.contact?.name || 'Unknown Client',
+          client: proposal.contact ? proposal.contact.name : 'Unknown Client',
           date: proposal.due_date ? format(parseISO(proposal.due_date), 'PP') : 'Unknown',
           type: 'proposal' as const
         }));
@@ -79,7 +79,7 @@ export const useNotifications = () => {
         .map(invoice => ({
           id: invoice.id,
           title: invoice.title,
-          client: invoice.contact?.name || 'Unknown Client',
+          client: invoice.contact ? invoice.contact.name : 'Unknown Client',
           date: invoice.due_date ? format(parseISO(invoice.due_date), 'PP') : 'Unknown',
           type: 'invoice' as const
         }));
