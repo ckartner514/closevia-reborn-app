@@ -63,6 +63,7 @@ const ContactsPage = () => {
         company: selectedContact.company,
         email: selectedContact.email,
         phone: selectedContact.phone,
+        company_website: selectedContact.company_website,
         last_interaction: selectedContact.last_interaction,
       });
     }
@@ -163,6 +164,7 @@ const ContactsPage = () => {
 
     try {
       setIsEditingContact(true);
+      
       const { error } = await supabase
         .from("contacts")
         .update({
