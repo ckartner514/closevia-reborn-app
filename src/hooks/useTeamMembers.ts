@@ -44,9 +44,10 @@ export const useTeamMembers = (user: User | null) => {
         if (error) throw error;
         
         if (data && data.organizations) {
+          // Access the organization data correctly - organizations is a nested object from the join
           setCurrentOrg({
             id: data.org_id,
-            name: data.organizations.name,
+            name: data.organizations.name, // Access the name from the joined organizations object
             userRole: data.role
           });
         }
