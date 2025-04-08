@@ -1,5 +1,6 @@
 
 import { format, parseISO } from "date-fns";
+import { useState, useEffect } from "react";
 import { InvoiceWithContact } from "./types";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -20,7 +21,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useState } from "react";
+import { toast } from "sonner";
+import ContactComments from "@/components/contacts/ContactComments";
+import { supabase } from "@/lib/supabase";
+
+type InvoiceComment = {
+  id: string;
+  contact_id: string;
+  text: string;
+  created_at: string;
+  user_id: string;
+};
 
 interface InvoiceDetailsDrawerProps {
   invoice: InvoiceWithContact | null;
@@ -32,6 +43,82 @@ export const InvoiceDetailsDrawer = ({
   onStatusChange
 }: InvoiceDetailsDrawerProps) => {
   const [status, setStatus] = useState<string>(invoice?.invoice_status || "pending");
+  const [comments, setComments] = useState<InvoiceComment[]>([]);
+  const [newComment, setNewComment] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (invoice) {
+      fetchComments();
+    }
+  }, [invoice]);
+
+  const fetchComments = async () => {
+    if (!invoice) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from("contact_comments")
+        .select("*")
+        .eq("contact_id", invoice.contact_id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setComments(data || []);
+    } catch (error) {
+      console.error("Error fetching comments:", error);
+      toast.error("Failed to load comments");
+    }
+  };
+
+  const handleCommentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setNewComment(e.target.value);
+  };
+
+  const handleAddComment = async () => {
+    if (!newComment.trim() || !invoice) return;
+    
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("contact_comments")
+        .insert({
+          contact_id: invoice.contact_id,
+          text: newComment,
+          user_id: (await supabase.auth.getUser()).data.user?.id || "",
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      
+      setComments([data, ...comments]);
+      setNewComment("");
+      toast.success("Comment added");
+    } catch (error) {
+      console.error("Error adding comment:", error);
+      toast.error("Failed to add comment");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    try {
+      const { error } = await supabase
+        .from("contact_comments")
+        .delete()
+        .eq("id", commentId);
+
+      if (error) throw error;
+      
+      setComments(comments.filter((comment) => comment.id !== commentId));
+      toast.success("Comment deleted");
+    } catch (error) {
+      console.error("Error deleting comment:", error);
+      toast.error("Failed to delete comment");
+    }
+  };
 
   if (!invoice) return null;
 
@@ -133,6 +220,17 @@ export const InvoiceDetailsDrawer = ({
             </div>
           </>
         )}
+
+        <Separator />
+        
+        <ContactComments
+          comments={comments}
+          newComment={newComment}
+          isLoading={isLoading}
+          onCommentChange={handleCommentChange}
+          onAddComment={handleAddComment}
+          onDeleteComment={handleDeleteComment}
+        />
       </div>
 
       <SheetFooter className="flex-col sm:flex-row gap-2 mt-4">

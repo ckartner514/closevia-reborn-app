@@ -1,5 +1,6 @@
 
 import { format, parseISO } from "date-fns";
+import { useState, useEffect } from "react";
 import { CheckCircle, XCircle, FileText, Trash2 } from "lucide-react";
 import { ProposalWithContact } from "./types";
 import { ProposalStatusBadge } from "./ProposalStatusBadge";
@@ -21,6 +22,17 @@ import {
   SelectValue
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import ContactComments from "@/components/contacts/ContactComments";
+import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
+
+type ProposalComment = {
+  id: string;
+  contact_id: string;
+  text: string;
+  created_at: string;
+  user_id: string;
+};
 
 interface ProposalDetailsDialogProps {
   proposal: ProposalWithContact | null;
@@ -39,6 +51,83 @@ export const ProposalDetailsDialog = ({
   onConvertToInvoice,
   onDeleteProposal
 }: ProposalDetailsDialogProps) => {
+  const [comments, setComments] = useState<ProposalComment[]>([]);
+  const [newComment, setNewComment] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (proposal) {
+      fetchComments();
+    }
+  }, [proposal]);
+
+  const fetchComments = async () => {
+    if (!proposal) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from("contact_comments")
+        .select("*")
+        .eq("contact_id", proposal.contact_id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setComments(data || []);
+    } catch (error) {
+      console.error("Error fetching comments:", error);
+      toast.error("Failed to load comments");
+    }
+  };
+
+  const handleCommentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setNewComment(e.target.value);
+  };
+
+  const handleAddComment = async () => {
+    if (!newComment.trim() || !proposal) return;
+    
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("contact_comments")
+        .insert({
+          contact_id: proposal.contact_id,
+          text: newComment,
+          user_id: (await supabase.auth.getUser()).data.user?.id || "",
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      
+      setComments([data, ...comments]);
+      setNewComment("");
+      toast.success("Comment added");
+    } catch (error) {
+      console.error("Error adding comment:", error);
+      toast.error("Failed to add comment");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    try {
+      const { error } = await supabase
+        .from("contact_comments")
+        .delete()
+        .eq("id", commentId);
+
+      if (error) throw error;
+      
+      setComments(comments.filter((comment) => comment.id !== commentId));
+      toast.success("Comment deleted");
+    } catch (error) {
+      console.error("Error deleting comment:", error);
+      toast.error("Failed to delete comment");
+    }
+  };
+
   if (!proposal) return null;
 
   const formatCurrency = (amount: number) => {
@@ -117,6 +206,16 @@ export const ProposalDetailsDialog = ({
           </div>
         </div>
 
+        {proposal.due_date && (
+          <>
+            <Separator />
+            <div>
+              <p className="text-muted-foreground text-sm">Follow-up Date</p>
+              <p>{format(parseISO(proposal.due_date), "PPP")}</p>
+            </div>
+          </>
+        )}
+
         {proposal.notes && (
           <>
             <Separator />
@@ -127,15 +226,16 @@ export const ProposalDetailsDialog = ({
           </>
         )}
 
-        {proposal.due_date && (
-          <>
-            <Separator />
-            <div>
-              <p className="text-muted-foreground text-sm">Follow-up Date</p>
-              <p>{format(parseISO(proposal.due_date), "PPP")}</p>
-            </div>
-          </>
-        )}
+        <Separator />
+        
+        <ContactComments
+          comments={comments}
+          newComment={newComment}
+          isLoading={isLoading}
+          onCommentChange={handleCommentChange}
+          onAddComment={handleAddComment}
+          onDeleteComment={handleDeleteComment}
+        />
       </div>
 
       <DialogFooter className="flex-col sm:flex-row gap-2 mt-4">
