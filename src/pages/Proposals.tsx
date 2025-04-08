@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -6,7 +5,7 @@ import { format, parseISO } from "date-fns";
 import { DateRange } from "react-day-picker";
 
 // Custom Components
-import { ProposalFilters } from "@/components/proposals/ProposalFilters";
+import ProposalFilters from "@/components/proposals/ProposalFilters";
 import { ProposalTable } from "@/components/proposals/ProposalTable";
 import { ProposalDetailsDialog } from "@/components/proposals/ProposalDetailsDialog";
 import { ProposalEmptyState } from "@/components/proposals/ProposalEmptyState";
@@ -148,7 +147,6 @@ const ProposalsPage = () => {
     setIsDetailsOpen(open);
     if (!open) {
       setSelectedProposal(null);
-      // Refresh proposals list to reflect any changes made in the dialog
       fetchProposals();
     }
   };
