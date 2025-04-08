@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { User } from "@supabase/supabase-js";
@@ -47,7 +46,7 @@ export const useTeamMembers = (user: User | null) => {
           // Access the organization data correctly - organizations is a nested object from the join
           setCurrentOrg({
             id: data.org_id,
-            name: data.organizations.name, // Access the name from the joined organizations object
+            name: data.organizations.name, // Now this is correctly accessing the name property of the organizations object
             userRole: data.role
           });
         }
