@@ -1,5 +1,5 @@
 
-import jsPDF from 'jspdf';
+import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { format } from 'date-fns';
 import { ProposalWithContact } from '@/components/proposals/types';
