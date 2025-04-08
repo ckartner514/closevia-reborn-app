@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
@@ -13,6 +12,7 @@ import { InvoiceFilters } from "@/components/invoices/InvoiceFilters";
 import { InvoiceSummary } from "@/components/invoices/InvoiceSummary";
 import { InvoiceTable } from "@/components/invoices/InvoiceTable";
 import { InvoiceEmptyState } from "@/components/invoices/InvoiceEmptyState";
+import { InvoiceDetailsDrawer } from "@/components/invoices/InvoiceDetailsDrawer";
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -23,9 +23,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Drawer } from "@/components/ui/drawer";
 
 // Import custom hook
 import { useInvoices } from "@/hooks/useInvoices";
+import { InvoiceWithContact } from "@/components/invoices/types";
 
 const InvoicesPage = () => {
   const { user } = useAuth();
@@ -48,6 +50,8 @@ const InvoicesPage = () => {
   const [invoiceToDelete, setInvoiceToDelete] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [highlightedInvoiceId, setHighlightedInvoiceId] = useState<string | null>(null);
+  const [selectedInvoice, setSelectedInvoice] = useState<InvoiceWithContact | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   
   // Handle URL query parameters for highlighting specific invoices
   useEffect(() => {
@@ -159,6 +163,11 @@ const InvoicesPage = () => {
     await updateInvoiceStatus(invoiceId, newStatus);
   };
 
+  const handleSelectInvoice = (invoice: InvoiceWithContact) => {
+    setSelectedInvoice(invoice);
+    setDrawerOpen(true);
+  };
+
   const filteredInvoices = invoices.filter(invoice => {
     if (selectedContactId && selectedContactId !== "all" && invoice.contact_id !== selectedContactId) {
       return false;
@@ -222,12 +231,18 @@ const InvoicesPage = () => {
             invoices={filteredInvoices} 
             onStatusChange={handleStatusChange}
             onDeleteInvoice={onDeleteClick}
+            onSelectInvoice={handleSelectInvoice}
             highlightedInvoiceId={highlightedInvoiceId}
+            isUpdatingStatus={isUpdatingStatus}
           />
         </>
       ) : (
         <InvoiceEmptyState loading={loading} hasFilters={hasFilters} />
       )}
+
+      <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
+        <InvoiceDetailsDrawer invoice={selectedInvoice} />
+      </Drawer>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>

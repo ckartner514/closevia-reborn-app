@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, Ban, Loader2, Trash2, MoreHorizontal } from "lucide-react";
+import { Check, Ban, Loader2, Trash2, MoreHorizontal, ArrowUpRight } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -25,6 +25,7 @@ interface InvoiceTableProps {
   invoices: InvoiceWithContact[];
   onStatusChange?: (invoiceId: string, newStatus: string) => void;
   onDeleteInvoice?: (invoiceId: string) => void;
+  onSelectInvoice?: (invoice: InvoiceWithContact) => void;
   highlightedInvoiceId?: string | null;
   isUpdatingStatus?: boolean;
   readOnly?: boolean;
@@ -34,6 +35,7 @@ export function InvoiceTable({
   invoices, 
   onStatusChange, 
   onDeleteInvoice,
+  onSelectInvoice,
   highlightedInvoiceId,
   isUpdatingStatus,
   readOnly = false
@@ -106,45 +108,55 @@ export function InvoiceTable({
               <TableCell>{getStatusBadge(invoice.invoice_status)}</TableCell>
               {!readOnly && onStatusChange && onDeleteInvoice && (
                 <TableCell className="text-right">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        {actionInvoiceId === invoice.id && isUpdatingStatus ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          "Actions"
+                  <div className="flex items-center justify-end space-x-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => onSelectInvoice && onSelectInvoice(invoice)}
+                      className="hover:bg-muted"
+                    >
+                      <ArrowUpRight className="h-4 w-4" />
+                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          {actionInvoiceId === invoice.id && isUpdatingStatus ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            "Actions"
+                          )}
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        {invoice.invoice_status === "pending" && (
+                          <DropdownMenuItem 
+                            onClick={() => handleActionClick(invoice.id, "paid")}
+                            disabled={actionInvoiceId === invoice.id && isUpdatingStatus}
+                          >
+                            <Check className="mr-2 h-4 w-4 text-green-500" />
+                            Mark as Paid
+                          </DropdownMenuItem>
                         )}
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      {invoice.invoice_status === "pending" && (
+                        {invoice.invoice_status === "pending" && (
+                          <DropdownMenuItem 
+                            onClick={() => handleActionClick(invoice.id, "overdue")}
+                            disabled={actionInvoiceId === invoice.id && isUpdatingStatus}
+                          >
+                            <Ban className="mr-2 h-4 w-4 text-yellow-500" />
+                            Mark as Overdue
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuSeparator />
                         <DropdownMenuItem 
-                          onClick={() => handleActionClick(invoice.id, "paid")}
-                          disabled={actionInvoiceId === invoice.id && isUpdatingStatus}
+                          onClick={() => onDeleteInvoice(invoice.id)}
+                          className="text-destructive"
                         >
-                          <Check className="mr-2 h-4 w-4 text-green-500" />
-                          Mark as Paid
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete Invoice
                         </DropdownMenuItem>
-                      )}
-                      {invoice.invoice_status === "pending" && (
-                        <DropdownMenuItem 
-                          onClick={() => handleActionClick(invoice.id, "overdue")}
-                          disabled={actionInvoiceId === invoice.id && isUpdatingStatus}
-                        >
-                          <Ban className="mr-2 h-4 w-4 text-yellow-500" />
-                          Mark as Overdue
-                        </DropdownMenuItem>
-                      )}
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem 
-                        onClick={() => onDeleteInvoice(invoice.id)}
-                        className="text-destructive"
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Delete Invoice
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </TableCell>
               )}
             </TableRow>
