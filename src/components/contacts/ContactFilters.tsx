@@ -104,7 +104,7 @@ const ContactFilters = ({
                     <SelectValue placeholder="Filter by company" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Companies</SelectItem>
+                    <SelectItem value="all">All Companies</SelectItem>
                     {companies.map(company => (
                       <SelectItem key={company} value={company}>
                         {company}
@@ -136,12 +136,12 @@ const ContactFilters = ({
             {/* Active filters display */}
             {hasActiveFilters && (
               <div className="flex flex-wrap gap-2 mt-4">
-                {companyFilter && (
+                {companyFilter && companyFilter !== "all" && (
                   <Badge variant="outline" className="flex items-center gap-1">
                     Company: {companyFilter}
                     <X 
                       className="h-3 w-3 cursor-pointer" 
-                      onClick={() => setCompanyFilter("")} 
+                      onClick={() => setCompanyFilter("all")} 
                     />
                   </Badge>
                 )}
