@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase, Invoice } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
@@ -65,6 +66,8 @@ const InvoicesPage = () => {
   const fetchInvoices = async () => {
     try {
       setLoading(true);
+      console.log("Fetching invoices for user:", user!.id);
+      
       const { data, error } = await supabase
         .from("invoices")
         .select(`
@@ -79,7 +82,12 @@ const InvoicesPage = () => {
         .eq("user_id", user!.id)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching invoices:", error);
+        throw error;
+      }
+      
+      console.log("Fetched invoices:", data);
       
       const invoicesWithContacts = data.map((item: any) => ({
         ...item,
@@ -153,7 +161,7 @@ const InvoicesPage = () => {
   };
 
   const filteredInvoices = invoices.filter(invoice => {
-    if (selectedContactId && invoice.contact_id !== selectedContactId) {
+    if (selectedContactId && selectedContactId !== "all" && invoice.contact_id !== selectedContactId) {
       return false;
     }
     

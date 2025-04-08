@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase, Contact } from "@/lib/supabase";
@@ -222,6 +223,14 @@ const ProposalsPage = () => {
     try {
       setIsConvertingToInvoice(true);
       
+      console.log("Creating invoice with data:", {
+        contact_id: selectedProposal.contact_id,
+        proposal_id: selectedProposal.id,
+        amount: data.amount,
+        user_id: user!.id,
+        notes: data.notes || null
+      });
+      
       const { data: invoiceData, error } = await supabase
         .from("invoices")
         .insert({
@@ -247,7 +256,7 @@ const ProposalsPage = () => {
       fetchProposals();
     } catch (error) {
       console.error("Error creating invoice:", error);
-      toast.error("Failed to create invoice");
+      toast.error("Failed to create invoice. Please try again.");
     } finally {
       setIsConvertingToInvoice(false);
     }

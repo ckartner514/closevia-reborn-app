@@ -53,7 +53,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         )}
       >
         <Header />
-        <div className="closevia-container flex-1">{children}</div>
+        <div className="closevia-container flex-1 p-6">{children}</div>
       </main>
     </div>
   );
