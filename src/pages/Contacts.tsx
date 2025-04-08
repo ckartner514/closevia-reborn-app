@@ -145,6 +145,10 @@ const ContactsPage = () => {
     }
   };
 
+  const handleCommentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setNewComment(e.target.value);
+  };
+
   const handleDeleteComment = async (commentId: string) => {
     try {
       setCommentLoading(true);
@@ -346,9 +350,8 @@ const ContactsPage = () => {
           <Textarea
             placeholder="Add a comment..."
             value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
+            onChange={handleCommentChange}
             className="flex-1"
-            key="comment-textarea"
           />
           <Button 
             onClick={handleAddComment} 
