@@ -164,6 +164,14 @@ const InvoicesPage = () => {
     setDrawerOpen(true);
   };
 
+  const handleDrawerOpenChange = (open: boolean) => {
+    setDrawerOpen(open);
+    
+    if (!open) {
+      fetchInvoices();
+    }
+  };
+
   const filteredInvoices = invoices.filter(invoice => {
     if (selectedContactId && selectedContactId !== "all" && invoice.contact_id !== selectedContactId) {
       return false;
@@ -236,7 +244,7 @@ const InvoicesPage = () => {
         <InvoiceEmptyState loading={loading} hasFilters={hasFilters} />
       )}
 
-      <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
+      <Sheet open={drawerOpen} onOpenChange={handleDrawerOpenChange}>
         <InvoiceDetailsDrawer 
           invoice={selectedInvoice} 
           onStatusChange={updateInvoiceStatus}
