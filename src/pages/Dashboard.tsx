@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
@@ -35,17 +36,23 @@ const Dashboard = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        // Fetch deals for both proposal and invoice data
-        const { data: deals, error: dealsError } = await supabase
+        // Fetch proposals separately
+        const { data: proposals, error: proposalsError } = await supabase
           .from("deals")
           .select("*")
-          .eq("user_id", user.id);
+          .eq("user_id", user.id)
+          .not("status", "eq", "invoice");
 
-        if (dealsError) throw dealsError;
+        if (proposalsError) throw proposalsError;
 
-        // Filter proposals and invoices from deals
-        const proposals = deals.filter(deal => deal.status !== 'invoice');
-        const invoices = deals.filter(deal => deal.status === 'invoice');
+        // Fetch invoices separately
+        const { data: invoices, error: invoicesError } = await supabase
+          .from("deals")
+          .select("*")
+          .eq("user_id", user.id)
+          .eq("status", "invoice");
+
+        if (invoicesError) throw invoicesError;
 
         // Calculate metrics
         const proposalsSent = proposals.length;

@@ -87,6 +87,7 @@ export type Database = {
           created_at: string
           due_date: string | null
           id: string
+          invoice_status: string | null
           items: Json | null
           notes: string | null
           status: string
@@ -99,6 +100,7 @@ export type Database = {
           created_at?: string
           due_date?: string | null
           id?: string
+          invoice_status?: string | null
           items?: Json | null
           notes?: string | null
           status?: string
@@ -111,6 +113,7 @@ export type Database = {
           created_at?: string
           due_date?: string | null
           id?: string
+          invoice_status?: string | null
           items?: Json | null
           notes?: string | null
           status?: string
