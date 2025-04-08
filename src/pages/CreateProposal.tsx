@@ -21,6 +21,7 @@ const CreateProposal = () => {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [open, setOpen] = useState(false);
@@ -39,6 +40,7 @@ const CreateProposal = () => {
   const fetchContacts = async () => {
     try {
       setLoading(true);
+      setError(null);
       const { data, error } = await supabase
         .from("contacts")
         .select("*")
@@ -49,6 +51,7 @@ const CreateProposal = () => {
       setContacts(data || []);
     } catch (error) {
       console.error("Error fetching contacts:", error);
+      setError("Failed to load contacts. Please try again later.");
       toast.error("Failed to load contacts");
     } finally {
       setLoading(false);
@@ -100,16 +103,19 @@ const CreateProposal = () => {
     }
   };
   
-  const filteredContacts = contacts.filter((contact) => {
-    if (!searchValue) return true;
-    
-    const search = searchValue.toLowerCase();
-    return (
-      contact.name.toLowerCase().includes(search) ||
-      contact.company.toLowerCase().includes(search) ||
-      contact.email.toLowerCase().includes(search)
-    );
-  });
+  // Filter contacts safely, ensuring contacts array exists
+  const filteredContacts = contacts && contacts.length > 0 
+    ? contacts.filter((contact) => {
+        if (!searchValue) return true;
+        
+        const search = searchValue.toLowerCase();
+        return (
+          contact.name.toLowerCase().includes(search) ||
+          (contact.company && contact.company.toLowerCase().includes(search)) ||
+          (contact.email && contact.email.toLowerCase().includes(search))
+        );
+      })
+    : [];
   
   return (
     <div className="space-y-6">
@@ -125,60 +131,69 @@ const CreateProposal = () => {
           {/* Contact Selection */}
           <div className="space-y-2">
             <label className="text-sm font-medium">Contact</label>
-            <Popover open={open} onOpenChange={setOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={open}
-                  className="w-full justify-between"
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <span className="text-muted-foreground">Loading contacts...</span>
-                  ) : selectedContact ? (
-                    `${selectedContact.name} (${selectedContact.company})`
-                  ) : (
-                    "Select a contact..."
-                  )}
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[400px] p-0">
-                <Command>
-                  <CommandInput
-                    placeholder="Search contacts..."
-                    value={searchValue}
-                    onValueChange={setSearchValue}
-                  />
-                  {filteredContacts.length === 0 && !loading ? (
+            {error ? (
+              <div className="text-sm text-destructive">{error}</div>
+            ) : (
+              <Popover open={open} onOpenChange={setOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={open}
+                    className="w-full justify-between"
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <span className="text-muted-foreground">Loading contacts...</span>
+                    ) : selectedContact ? (
+                      `${selectedContact.name} (${selectedContact.company || 'No Company'})`
+                    ) : (
+                      "Select a contact..."
+                    )}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[400px] p-0">
+                  <Command>
+                    <CommandInput
+                      placeholder="Search contacts..."
+                      value={searchValue}
+                      onValueChange={setSearchValue}
+                    />
                     <CommandEmpty>No contacts found</CommandEmpty>
-                  ) : null}
-                  <CommandGroup className="max-h-[300px] overflow-y-auto">
-                    {filteredContacts.map((contact) => (
-                      <CommandItem
-                        key={contact.id}
-                        value={contact.id}
-                        onSelect={() => {
-                          setSelectedContact(contact);
-                          setOpen(false);
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            selectedContact?.id === contact.id
-                              ? "opacity-100"
-                              : "opacity-0"
-                          )}
-                        />
-                        {contact.name} - {contact.company}
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </Command>
-              </PopoverContent>
-            </Popover>
+                    {filteredContacts.length > 0 && (
+                      <CommandGroup className="max-h-[300px] overflow-y-auto">
+                        {filteredContacts.map((contact) => (
+                          <CommandItem
+                            key={contact.id}
+                            value={contact.id}
+                            onSelect={() => {
+                              setSelectedContact(contact);
+                              setOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                selectedContact?.id === contact.id
+                                  ? "opacity-100"
+                                  : "opacity-0"
+                              )}
+                            />
+                            {contact.name} - {contact.company || 'No Company'}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    )}
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            )}
+            {contacts.length === 0 && !loading && !error && (
+              <div className="text-sm text-amber-600">
+                No contacts found. Please <a href="/contacts" className="underline font-medium">create a contact</a> first.
+              </div>
+            )}
           </div>
           
           {/* Proposal Title */}
