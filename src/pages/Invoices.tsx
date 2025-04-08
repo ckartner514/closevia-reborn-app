@@ -23,7 +23,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Drawer } from "@/components/ui/drawer";
+import { Sheet } from "@/components/ui/sheet";
 
 // Import custom hook
 import { useInvoices } from "@/hooks/useInvoices";
@@ -236,12 +236,12 @@ const InvoicesPage = () => {
         <InvoiceEmptyState loading={loading} hasFilters={hasFilters} />
       )}
 
-      <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
+      <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
         <InvoiceDetailsDrawer 
           invoice={selectedInvoice} 
           onStatusChange={updateInvoiceStatus}
         />
-      </Drawer>
+      </Sheet>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>

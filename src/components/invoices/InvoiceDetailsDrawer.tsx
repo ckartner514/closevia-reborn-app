@@ -4,13 +4,14 @@ import { InvoiceWithContact } from "./types";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerClose,
-} from "@/components/ui/drawer";
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetFooter,
+  SheetClose,
+} from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -62,18 +63,18 @@ export const InvoiceDetailsDrawer = ({
   };
 
   return (
-    <DrawerContent className="h-[85vh] max-w-md mx-auto">
-      <DrawerHeader>
-        <DrawerTitle className="flex items-center justify-between">
+    <SheetContent className="sm:max-w-xl max-h-[85vh] overflow-y-auto">
+      <SheetHeader>
+        <SheetTitle className="flex items-center justify-between">
           <span>Invoice Details</span>
           {getStatusBadge(status)}
-        </DrawerTitle>
-        <DrawerDescription>
+        </SheetTitle>
+        <SheetDescription>
           Created on {format(parseISO(invoice.created_at), "PPP")}
-        </DrawerDescription>
-      </DrawerHeader>
+        </SheetDescription>
+      </SheetHeader>
 
-      <div className="px-4 space-y-4 overflow-y-auto">
+      <div className="space-y-4">
         <div>
           <h3 className="text-lg font-semibold">{invoice.title}</h3>
           <p className="text-sm text-muted-foreground">
@@ -83,10 +84,10 @@ export const InvoiceDetailsDrawer = ({
 
         <Separator />
 
-        <div>
+        <div className="grid gap-2">
           <label className="text-sm font-medium">Status</label>
           <Select value={status} onValueChange={handleStatusChange}>
-            <SelectTrigger className="w-full mt-1">
+            <SelectTrigger className="w-full">
               <SelectValue placeholder="Select status" />
             </SelectTrigger>
             <SelectContent>
@@ -134,13 +135,13 @@ export const InvoiceDetailsDrawer = ({
         )}
       </div>
 
-      <DrawerFooter className="flex-col sm:flex-row gap-2 mt-4">
-        <DrawerClose asChild>
+      <SheetFooter className="flex-col sm:flex-row gap-2 mt-4">
+        <SheetClose asChild>
           <Button variant="outline" size="sm">
             Close
           </Button>
-        </DrawerClose>
-      </DrawerFooter>
-    </DrawerContent>
+        </SheetClose>
+      </SheetFooter>
+    </SheetContent>
   );
 };
