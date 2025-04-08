@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from "react";
 import { supabase, Contact } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
@@ -31,7 +30,7 @@ const ContactsPage = () => {
   
   // Basic filters
   const [searchQuery, setSearchQuery] = useState("");
-  const [companyFilter, setCompanyFilter] = useState("");
+  const [companyFilter, setCompanyFilter] = useState("all");
   const [lastInteractionFilter, setLastInteractionFilter] = useState("all");
   
   // Derived data
@@ -314,7 +313,7 @@ const ContactsPage = () => {
 
   const clearFilters = () => {
     setSearchQuery("");
-    setCompanyFilter("");
+    setCompanyFilter("all");
     setLastInteractionFilter("all");
   };
 
@@ -322,7 +321,7 @@ const ContactsPage = () => {
   const filteredContacts = useMemo(() => {
     return contacts.filter(contact => {
       // Filter by company
-      if (companyFilter && contact.company !== companyFilter) {
+      if (companyFilter && companyFilter !== "all" && contact.company !== companyFilter) {
         return false;
       }
       
@@ -349,7 +348,7 @@ const ContactsPage = () => {
   }, [contacts, companyFilter, lastInteractionFilter]);
 
   const hasFilters = !!(
-    companyFilter || 
+    companyFilter !== "all" || 
     lastInteractionFilter !== "all" || 
     searchQuery
   );

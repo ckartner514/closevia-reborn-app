@@ -43,7 +43,7 @@ const ContactFilters = ({
   
   // Calculate if any filters are active
   const hasActiveFilters = searchQuery || 
-    companyFilter || 
+    companyFilter !== "all" || 
     (lastInteractionFilter && lastInteractionFilter !== "all");
 
   return (

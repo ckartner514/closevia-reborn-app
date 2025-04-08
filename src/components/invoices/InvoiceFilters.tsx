@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Search, X, RefreshCw, CalendarIcon, FilterIcon } from "lucide-react";
 import { format, startOfMonth, endOfMonth, subMonths, addDays, startOfWeek, endOfWeek } from "date-fns";
@@ -98,9 +97,9 @@ export const InvoiceFilters = ({
   const hasActiveFilters = searchQuery || 
     selectedContactId || 
     dateRange || 
-    (selectedStatus && selectedStatus !== "all") ||
-    (selectedAmountRange && selectedAmountRange !== "all") ||
-    (selectedDueRange && selectedDueRange !== "all");
+    (selectedStatus !== "all") ||
+    (selectedAmountRange !== "all") ||
+    (selectedDueRange !== "all");
 
   return (
     <div className="space-y-4">

@@ -1,6 +1,5 @@
-
 import { useState } from "react";
-import { PlusCircle, Search, X, RefreshCw, CalendarIcon, FilterIcon } from "lucide-react";
+import { Search, X, RefreshCw, FilterIcon, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
@@ -11,21 +10,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import { DateRange } from "react-day-picker";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { format, startOfWeek, endOfWeek, addDays } from "date-fns";
+import { format } from "date-fns";
+import { DateRange } from "react-day-picker";
 
 interface ProposalFiltersProps {
   filterStatus: string;
-  onFilterChange: (value: string) => void;
+  onFilterChange: (status: string) => void;
   onCreateNew: () => void;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
@@ -40,10 +33,10 @@ interface ProposalFiltersProps {
   clearFilters: () => void;
   contacts: { id: string; name: string; company: string }[];
   selectedContactId: string | null;
-  setSelectedContactId: (id: string | null) => void;
+  setSelectedContactId: (contactId: string | null) => void;
 }
 
-export const ProposalFilters = ({
+const ProposalFilters = ({
   filterStatus,
   onFilterChange,
   onCreateNew,
@@ -63,40 +56,16 @@ export const ProposalFilters = ({
   setSelectedContactId
 }: ProposalFiltersProps) => {
   
-  // Calculate if any filters are active
-  const hasActiveFilters = searchQuery || 
-    (filterStatus !== "all") ||
-    (selectedAmountRange && selectedAmountRange !== "all") ||
-    (selectedFollowUpRange && selectedFollowUpRange !== "all") ||
-    selectedContactId;
-
-  const setThisWeek = () => {
-    const now = new Date();
-    setFollowUpDateRange({
-      from: startOfWeek(now, { weekStartsOn: 1 }),
-      to: endOfWeek(now, { weekStartsOn: 1 })
-    });
-  };
-
-  const setNext30Days = () => {
-    const now = new Date();
-    setFollowUpDateRange({
-      from: now,
-      to: addDays(now, 30)
-    });
-  };
+  const hasActiveFilters = 
+    filterStatus !== "all" ||
+    searchQuery ||
+    selectedAmountRange !== "all" ||
+    selectedFollowUpRange !== "all" ||
+    selectedContactId !== null ||
+    (followUpDateRange?.from !== undefined || followUpDateRange?.to !== undefined);
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h1 className="page-title">Proposals</h1>
-        
-        <Button onClick={onCreateNew}>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Create Proposal
-        </Button>
-      </div>
-      
       <div className="flex flex-wrap gap-3">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -117,7 +86,23 @@ export const ProposalFilters = ({
             </Button>
           )}
         </div>
-        
+
+        <Select value={filterStatus} onValueChange={onFilterChange}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Filter by status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Statuses</SelectItem>
+            <SelectItem value="draft">Draft</SelectItem>
+            <SelectItem value="sent">Sent</SelectItem>
+            <SelectItem value="viewed">Viewed</SelectItem>
+            <SelectItem value="approved">Approved</SelectItem>
+            <SelectItem value="declined">Declined</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Button onClick={onCreateNew}>Create New</Button>
+
         {hasActiveFilters && (
           <Button 
             variant="outline" 
@@ -129,231 +114,160 @@ export const ProposalFilters = ({
           </Button>
         )}
       </div>
-      
-      <Accordion type="single" collapsible className="w-full">
-        <AccordionItem value="filters">
-          <AccordionTrigger className="text-sm py-2">
-            <div className="flex items-center gap-2">
-              <FilterIcon className="h-4 w-4" />
-              <span>Advanced Filters</span>
-              {hasActiveFilters && (
-                <Badge variant="secondary" className="ml-2 text-xs">Active</Badge>
-              )}
-            </div>
-          </AccordionTrigger>
-          <AccordionContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 py-2">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Status</label>
-                <Select 
-                  value={filterStatus} 
-                  onValueChange={onFilterChange}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Filter by status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value="open">Open</SelectItem>
-                    <SelectItem value="accepted">Accepted</SelectItem>
-                    <SelectItem value="refused">Refused</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Contact</label>
-                <Select 
-                  value={selectedContactId || ""} 
-                  onValueChange={(value) => setSelectedContactId(value || null)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="All contacts" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">All contacts</SelectItem>
-                    {contacts.map(contact => (
-                      <SelectItem key={contact.id} value={contact.id}>
-                        {contact.name} ({contact.company})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Amount Range</label>
-                <Select 
-                  value={selectedAmountRange} 
-                  onValueChange={setSelectedAmountRange}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Filter by amount" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Amounts</SelectItem>
-                    <SelectItem value="lt500">Less than $500</SelectItem>
-                    <SelectItem value="500-1000">$500 - $1,000</SelectItem>
-                    <SelectItem value="1000-5000">$1,000 - $5,000</SelectItem>
-                    <SelectItem value="gt5000">More than $5,000</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Follow-up Date</label>
-                <Select 
-                  value={selectedFollowUpRange} 
-                  onValueChange={setSelectedFollowUpRange}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Filter by follow-up date" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Dates</SelectItem>
-                    <SelectItem value="thisWeek">This Week</SelectItem>
-                    <SelectItem value="next30Days">Next 30 Days</SelectItem>
-                    <SelectItem value="overdue">Overdue</SelectItem>
-                    <SelectItem value="custom">Custom Range</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              {selectedFollowUpRange === 'custom' && (
-                <div className="space-y-2 md:col-span-2">
-                  <label className="text-sm font-medium">Custom Date Range</label>
-                  <Popover open={followUpDateOpen} onOpenChange={setFollowUpDateOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left",
-                          !followUpDateRange && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {followUpDateRange?.from ? (
-                          followUpDateRange.to ? (
-                            <>
-                              {format(followUpDateRange.from, "LLL dd, y")} -{" "}
-                              {format(followUpDateRange.to, "LLL dd, y")}
-                            </>
-                          ) : (
-                            format(followUpDateRange.from, "LLL dd, y")
-                          )
-                        ) : (
-                          "Select date range"
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <div className="p-3 border-b">
-                        <div className="flex gap-2 mb-2">
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            className="text-xs"
-                            onClick={setThisWeek}
-                          >
-                            This Week
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            className="text-xs"
-                            onClick={setNext30Days}
-                          >
-                            Next 30 Days
-                          </Button>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            className="text-xs"
-                            onClick={() => setFollowUpDateRange(undefined)}
-                          >
-                            Clear
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            className="text-xs ml-auto"
-                            onClick={() => setFollowUpDateOpen(false)}
-                          >
-                            Apply
-                          </Button>
-                        </div>
-                      </div>
-                      <Calendar
-                        mode="range"
-                        selected={followUpDateRange}
-                        onSelect={setFollowUpDateRange}
-                        initialFocus
-                        numberOfMonths={2}
-                        className={cn("p-3 pointer-events-auto")}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              )}
-            </div>
-            
-            {/* Active filters display */}
-            {hasActiveFilters && (
-              <div className="flex flex-wrap gap-2 mt-4">
-                {filterStatus && filterStatus !== "all" && (
-                  <Badge variant="outline" className="flex items-center gap-1">
-                    Status: {filterStatus}
-                    <X 
-                      className="h-3 w-3 cursor-pointer" 
-                      onClick={() => onFilterChange("all")} 
-                    />
-                  </Badge>
-                )}
-                {selectedAmountRange && selectedAmountRange !== "all" && (
-                  <Badge variant="outline" className="flex items-center gap-1">
-                    Amount: {selectedAmountRange.replace('lt', '<').replace('gt', '>').replace('-', ' - $')}
-                    <X 
-                      className="h-3 w-3 cursor-pointer" 
-                      onClick={() => setSelectedAmountRange("all")} 
-                    />
-                  </Badge>
-                )}
-                {selectedFollowUpRange && selectedFollowUpRange !== "all" && (
-                  <Badge variant="outline" className="flex items-center gap-1">
-                    Follow-up: {selectedFollowUpRange === 'thisWeek' ? 'This Week' : 
-                                selectedFollowUpRange === 'next30Days' ? 'Next 30 Days' : 
-                                selectedFollowUpRange === 'overdue' ? 'Overdue' : 'Custom'}
-                    <X 
-                      className="h-3 w-3 cursor-pointer" 
-                      onClick={() => setSelectedFollowUpRange("all")} 
-                    />
-                  </Badge>
-                )}
-                {selectedContactId && (
-                  <Badge variant="outline" className="flex items-center gap-1">
-                    Contact: {contacts.find(c => c.id === selectedContactId)?.name || ''}
-                    <X 
-                      className="h-3 w-3 cursor-pointer" 
-                      onClick={() => setSelectedContactId(null)} 
-                    />
-                  </Badge>
-                )}
-                {searchQuery && (
-                  <Badge variant="outline" className="flex items-center gap-1">
-                    Search: {searchQuery}
-                    <X 
-                      className="h-3 w-3 cursor-pointer" 
-                      onClick={() => setSearchQuery("")} 
-                    />
-                  </Badge>
-                )}
-              </div>
+
+      <div className="border rounded-md p-4">
+        <div className="flex items-center gap-2 mb-2">
+          <FilterIcon className="h-4 w-4" />
+          <span className="text-sm font-medium">Advanced Filters</span>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="text-sm font-medium block mb-2">Amount Range</label>
+            <Select 
+              value={selectedAmountRange} 
+              onValueChange={setSelectedAmountRange}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Filter by amount" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Amounts</SelectItem>
+                <SelectItem value="0-1000">$0 - $1,000</SelectItem>
+                <SelectItem value="1000-5000">$1,000 - $5,000</SelectItem>
+                <SelectItem value="5000-10000">$5,000 - $10,000</SelectItem>
+                <SelectItem value="10000+">$10,000+</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium block mb-2">Contact</label>
+            <Select
+              value={selectedContactId || "all"}
+              onValueChange={(value) => setSelectedContactId(value === "all" ? null : value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Filter by contact" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Contacts</SelectItem>
+                {contacts.map((contact) => (
+                  <SelectItem key={contact.id} value={contact.id}>
+                    {contact.name} ({contact.company})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium block mb-2">Follow Up Date</label>
+            <Select 
+              value={selectedFollowUpRange} 
+              onValueChange={setSelectedFollowUpRange}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Filter by follow up" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Any Date</SelectItem>
+                <SelectItem value="thisWeek">This Week</SelectItem>
+                <SelectItem value="next30Days">Next 30 Days</SelectItem>
+                <SelectItem value="overdue">Overdue</SelectItem>
+                <SelectItem value="custom">Custom Range</SelectItem>
+              </SelectContent>
+            </Select>
+            {selectedFollowUpRange === "custom" && (
+              <Popover open={followUpDateOpen} onOpenChange={setFollowUpDateOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !followUpDateRange?.from && "text-muted-foreground"
+                    )}
+                  >
+                    {followUpDateRange?.from ? (
+                      followUpDateRange.to ? (
+                        <>
+                          {format(followUpDateRange.from, "PPP")} -{" "}
+                          {format(followUpDateRange.to, "PPP")}
+                        </>
+                      ) : (
+                        format(followUpDateRange.from, "PPP")
+                      )
+                    ) : (
+                      <span>Pick a date</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="center" side="bottom">
+                  <Calendar
+                    mode="range"
+                    defaultMonth={followUpDateRange?.from}
+                    selected={followUpDateRange}
+                    onSelect={setFollowUpDateRange}
+                    disabled={{ before: new Date() }}
+                    className="rounded-md border"
+                  />
+                </PopoverContent>
+              </Popover>
             )}
-          </AccordionContent>
-        </AccordionItem>
-      </Accordion>
+          </div>
+        </div>
+
+        {hasActiveFilters && (
+          <div className="flex flex-wrap gap-2 mt-4">
+            {filterStatus !== "all" && (
+              <Badge variant="outline" className="flex items-center gap-1">
+                Status: {filterStatus}
+                <X 
+                  className="h-3 w-3 cursor-pointer" 
+                  onClick={() => onFilterChange("all")} 
+                />
+              </Badge>
+            )}
+            {selectedAmountRange !== "all" && (
+              <Badge variant="outline" className="flex items-center gap-1">
+                Amount: {selectedAmountRange}
+                <X
+                  className="h-3 w-3 cursor-pointer"
+                  onClick={() => setSelectedAmountRange("all")}
+                />
+              </Badge>
+            )}
+            {selectedContactId && (
+              <Badge variant="outline" className="flex items-center gap-1">
+                Contact: {contacts.find(c => c.id === selectedContactId)?.name}
+                <X
+                  className="h-3 w-3 cursor-pointer"
+                  onClick={() => setSelectedContactId(null)}
+                />
+              </Badge>
+            )}
+            {selectedFollowUpRange !== "all" && (
+              <Badge variant="outline" className="flex items-center gap-1">
+                Follow Up: {selectedFollowUpRange}
+                <X
+                  className="h-3 w-3 cursor-pointer"
+                  onClick={() => setSelectedFollowUpRange("all")}
+                />
+              </Badge>
+            )}
+            {searchQuery && (
+              <Badge variant="outline" className="flex items-center gap-1">
+                Search: {searchQuery}
+                <X 
+                  className="h-3 w-3 cursor-pointer" 
+                  onClick={() => setSearchQuery("")} 
+                />
+              </Badge>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
+
+export default ProposalFilters;
