@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { User } from "@supabase/supabase-js";
@@ -45,15 +44,13 @@ export const useTeamMembers = (user: User | null) => {
 
         if (error) throw error;
 
-        if (data && data.organizations) {
-          const orgName = Array.isArray(data.organizations)
-            ? data.organizations[0]?.name
-            : data.organizations?.name;
+        if (data && typeof data.organizations === 'object' && data.organizations !== null) {
+          const org = data.organizations as { id: string; name: string };
 
           setCurrentOrg({
             id: data.org_id,
-            name: orgName || "Unknown Organization",
-            userRole: data.role,
+            name: org.name,
+            userRole: data.role
           });
         }
       } catch (error) {
