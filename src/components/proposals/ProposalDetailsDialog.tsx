@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { ProposalWithContact } from "./types";
 import { ProposalStatusBadge, getStatusColor } from "./ProposalStatusBadge";
+import { toast } from "sonner";
 
 interface ProposalDetailsDialogProps {
   proposal: ProposalWithContact | null;
@@ -31,6 +32,18 @@ export const ProposalDetailsDialog = ({
   onStatusChange,
   onConvertToInvoice
 }: ProposalDetailsDialogProps) => {
+  const [error, setError] = useState<string | null>(null);
+
+  const handleConvertClick = async () => {
+    try {
+      setError(null);
+      await onConvertToInvoice();
+    } catch (err: any) {
+      setError(err?.message || "Failed to create invoice");
+      console.error("Error in convert click handler:", err);
+    }
+  };
+
   if (!proposal) return null;
 
   return (
@@ -133,12 +146,18 @@ export const ProposalDetailsDialog = ({
             </Button>
           </div>
         </div>
+        
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-md text-sm">
+            {error}
+          </div>
+        )}
       </div>
       
       <DialogFooter>
         {proposal.status === "accepted" && (
           <Button
-            onClick={onConvertToInvoice}
+            onClick={handleConvertClick}
             disabled={isConvertingToInvoice}
           >
             {isConvertingToInvoice ? (

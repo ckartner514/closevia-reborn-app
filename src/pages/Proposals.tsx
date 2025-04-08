@@ -11,6 +11,7 @@ import { ProposalDetailsDialog } from "@/components/proposals/ProposalDetailsDia
 import { ProposalEmptyState } from "@/components/proposals/ProposalEmptyState";
 import { ProposalWithContact } from "@/components/proposals/types";
 import { useProposals } from "@/hooks/useProposals";
+import { toast } from "sonner";
 
 const ProposalsPage = () => {
   const { user } = useAuth();
@@ -23,6 +24,7 @@ const ProposalsPage = () => {
     loading,
     isUpdatingStatus,
     isConvertingToInvoice,
+    fetchProposals,
     handleStatusChange,
     handleConvertToInvoice
   } = useProposals(user?.id);
@@ -32,14 +34,24 @@ const ProposalsPage = () => {
   };
 
   const handleConvertSelectedToInvoice = async () => {
-    if (!selectedProposal) return;
+    if (!selectedProposal) {
+      toast.error("No proposal selected");
+      return;
+    }
+    
+    console.log("Converting proposal to invoice:", selectedProposal);
     
     // Create the invoice
     const invoiceId = await handleConvertToInvoice(selectedProposal);
     
     if (invoiceId) {
-      // Navigate to invoices page
+      console.log("Successfully created invoice with ID:", invoiceId);
+      // Refresh proposals list to reflect changes
+      fetchProposals();
+      // Only navigate to invoices page on success
       navigate("/invoices");
+    } else {
+      console.error("Failed to create invoice - no invoice ID returned");
     }
   };
 

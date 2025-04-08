@@ -81,8 +81,8 @@ export const useProposals = (userId: string | undefined) => {
         status: "invoice", 
         invoice_status: "pending",
         due_date: proposal.due_date,
-        proposal_id: proposal.id,
         user_id: userId
+        // Removed proposal_id field as it doesn't exist in the schema
       };
       
       console.log("Creating invoice with data:", invoiceData);
@@ -99,13 +99,16 @@ export const useProposals = (userId: string | undefined) => {
         throw error;
       }
       
+      console.log("Invoice created successfully:", newInvoice);
+      
       // Show success message
       toast.success("Invoice created successfully!");
       
       return newInvoice.id;
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating invoice:", error);
-      toast.error("Failed to create invoice. Please try again.");
+      // Show detailed error message
+      toast.error(`Failed to create invoice: ${error.message || "Please try again"}`);
       return null;
     } finally {
       setIsConvertingToInvoice(false);
