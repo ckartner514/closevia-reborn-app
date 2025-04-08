@@ -4,21 +4,14 @@ import { PeriodSelector } from "./PeriodSelector";
 import { RevenueChart } from "./RevenueChart";
 import { ProposalChart } from "./ProposalChart";
 import { Period } from "@/hooks/useDashboardData";
-import { ActionableInsights } from "./ActionableInsights";
+import { TopClientsChart } from "./TopClientsChart";
 
 interface DashboardChartsProps {
   revenueData: any[];
   proposalData: any[];
   period: Period;
   onPeriodChange: (period: Period) => void;
-  openProposals: number;
-  overdueInvoices: number;
-  upcomingInvoices: {
-    id: string;
-    title: string;
-    due_date: string;
-    amount: number;
-  }[];
+  topClients: { name: string; company: string; revenue: number }[];
 }
 
 export const DashboardCharts = ({ 
@@ -26,9 +19,7 @@ export const DashboardCharts = ({
   proposalData, 
   period, 
   onPeriodChange,
-  openProposals,
-  overdueInvoices,
-  upcomingInvoices
+  topClients
 }: DashboardChartsProps) => {
   return (
     <div className="space-y-6">
@@ -47,14 +38,10 @@ export const DashboardCharts = ({
       
       <Card className="border-none shadow-md">
         <CardHeader className="pb-2 border-b">
-          <CardTitle className="text-lg font-semibold text-gray-900">Actionable Insights</CardTitle>
+          <CardTitle className="text-lg font-semibold text-gray-900">Top Clients by Revenue</CardTitle>
         </CardHeader>
         <CardContent className="p-4">
-          <ActionableInsights 
-            openProposals={openProposals} 
-            overdueInvoices={overdueInvoices} 
-            upcomingInvoices={upcomingInvoices}
-          />
+          <TopClientsChart clients={topClients} />
         </CardContent>
       </Card>
     </div>

@@ -6,7 +6,6 @@ import { DashboardCharts } from "@/components/dashboard/DashboardCharts";
 import { DashboardLoading } from "@/components/dashboard/DashboardLoading";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { isOverdue } from "@/utils/date-utils";
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -17,9 +16,7 @@ const Dashboard = () => {
     proposalData, 
     period, 
     setPeriod,
-    openProposals,
-    overdueInvoices,
-    upcomingInvoices
+    topClients 
   } = useDashboardData(user?.id);
   const [userFullName, setUserFullName] = useState<string | null>(null);
 
@@ -72,9 +69,7 @@ const Dashboard = () => {
             proposalData={proposalData}
             period={period}
             onPeriodChange={setPeriod}
-            openProposals={openProposals}
-            overdueInvoices={overdueInvoices}
-            upcomingInvoices={upcomingInvoices}
+            topClients={topClients}
           />
         </>
       )}
