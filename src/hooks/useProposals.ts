@@ -27,6 +27,7 @@ export const useProposals = (userId: string | undefined) => {
           )
         `)
         .eq("user_id", userId!)
+        .neq("status", "invoice") // Add this line to exclude invoices
         .order("created_at", { ascending: false });
 
       if (error) throw error;

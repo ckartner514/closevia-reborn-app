@@ -29,12 +29,12 @@ export const useDashboardData = (userId: string | undefined) => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Fetch proposals separately
+      // Fetch proposals separately - exclude invoice records
       const { data: proposals, error: proposalsError } = await supabase
         .from("deals")
         .select("*")
         .eq("user_id", userId)
-        .not("status", "eq", "invoice");
+        .neq("status", "invoice");
 
       if (proposalsError) throw proposalsError;
 
