@@ -44,12 +44,16 @@ export const useTeamMembers = (user: User | null) => {
         if (error) throw error;
         
         if (data && data.organizations) {
-          // Access the organization data correctly - safely handle both array and object structures
+          // Handle organizations data safely, ensuring type safety
+          const orgName = typeof data.organizations === 'object' 
+            ? (Array.isArray(data.organizations) 
+                ? data.organizations[0]?.name 
+                : data.organizations.name)
+            : '';
+          
           setCurrentOrg({
             id: data.org_id,
-            name: Array.isArray(data.organizations) 
-              ? data.organizations[0]?.name 
-              : data.organizations?.name,
+            name: orgName || 'Unknown Organization',
             userRole: data.role
           });
         }
