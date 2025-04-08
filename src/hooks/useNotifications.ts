@@ -12,6 +12,12 @@ export type Notification = {
   type: 'proposal' | 'invoice';
 };
 
+// Define a type for the contact structure
+type ContactData = {
+  id: string;
+  name: string;
+};
+
 export const useNotifications = () => {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -66,16 +72,13 @@ export const useNotifications = () => {
       const proposalNotifications = overdueProposals
         .filter(proposal => proposal.due_date && isPast(parseISO(proposal.due_date)))
         .map(proposal => {
-          // Check if contact exists and is properly structured
-          let clientName = 'Unknown Client';
-          if (proposal.contact && typeof proposal.contact === 'object' && !Array.isArray(proposal.contact)) {
-            clientName = proposal.contact.name || 'Unknown Client';
-          }
+          // Properly type the contact object
+          const contact = proposal.contact as ContactData;
           
           return {
             id: proposal.id,
             title: proposal.title,
-            client: clientName,
+            client: contact?.name || 'Unknown Client',
             date: proposal.due_date ? format(parseISO(proposal.due_date), 'PP') : 'Unknown',
             type: 'proposal' as const
           };
@@ -85,16 +88,13 @@ export const useNotifications = () => {
       const invoiceNotifications = overdueInvoices
         .filter(invoice => invoice.due_date && isPast(parseISO(invoice.due_date)))
         .map(invoice => {
-          // Check if contact exists and is properly structured
-          let clientName = 'Unknown Client';
-          if (invoice.contact && typeof invoice.contact === 'object' && !Array.isArray(invoice.contact)) {
-            clientName = invoice.contact.name || 'Unknown Client';
-          }
+          // Properly type the contact object
+          const contact = invoice.contact as ContactData;
           
           return {
             id: invoice.id,
             title: invoice.title,
-            client: clientName,
+            client: contact?.name || 'Unknown Client',
             date: invoice.due_date ? format(parseISO(invoice.due_date), 'PP') : 'Unknown',
             type: 'invoice' as const
           };
