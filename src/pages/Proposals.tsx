@@ -1,7 +1,5 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Dialog } from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/AuthContext";
 
 // Custom Components
@@ -22,6 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Dialog } from "@/components/ui/dialog";
 
 const ProposalsPage = () => {
   const { user } = useAuth();
@@ -45,7 +44,6 @@ const ProposalsPage = () => {
     deleteProposal
   } = useProposals(user?.id);
 
-  // Handle query parameter for opening a specific proposal
   useEffect(() => {
     const query = new URLSearchParams(location.search);
     const proposalId = query.get('openProposal');
@@ -56,7 +54,6 @@ const ProposalsPage = () => {
         setSelectedProposal(proposal);
         setIsDetailsOpen(true);
         
-        // Remove the query parameter after opening
         navigate('/proposals', { replace: true });
       }
     }
@@ -74,14 +71,11 @@ const ProposalsPage = () => {
     
     console.log("Converting proposal to invoice:", selectedProposal);
     
-    // Create the invoice
     const invoiceId = await handleConvertToInvoice(selectedProposal);
     
     if (invoiceId) {
       console.log("Successfully created invoice with ID:", invoiceId);
-      // Refresh proposals list to reflect changes
       fetchProposals();
-      // Only navigate to invoices page on success
       navigate("/invoices");
     } else {
       console.error("Failed to create invoice - no invoice ID returned");
@@ -95,9 +89,9 @@ const ProposalsPage = () => {
     if (success) {
       setDeleteDialogOpen(false);
       setProposalToDelete(null);
-      // If the deleted proposal was selected, clear the selection
       if (selectedProposal && selectedProposal.id === proposalToDelete) {
         setSelectedProposal(null);
+        setIsDetailsOpen(false);
       }
     }
   };
@@ -105,6 +99,11 @@ const ProposalsPage = () => {
   const onDeleteClick = (proposalId: string) => {
     setProposalToDelete(proposalId);
     setDeleteDialogOpen(true);
+  };
+
+  const handleSelectProposal = (proposal: ProposalWithContact) => {
+    setSelectedProposal(proposal);
+    setIsDetailsOpen(true);
   };
 
   const filteredProposals = filterStatus === "all" 
@@ -125,31 +124,30 @@ const ProposalsPage = () => {
           onCreateNew={handleCreateNewProposal} 
         />
       ) : (
-        <Dialog 
-          open={isDetailsOpen} 
-          onOpenChange={(open) => {
-            setIsDetailsOpen(open);
-            if (!open) setSelectedProposal(null);
-          }}
-        >
+        <>
           <ProposalTable
             proposals={filteredProposals}
-            onSelectProposal={(proposal) => {
-              setSelectedProposal(proposal);
-              setIsDetailsOpen(true);
-            }}
+            onSelectProposal={handleSelectProposal}
             onDeleteProposal={onDeleteClick}
           />
           
-          <ProposalDetailsDialog
-            proposal={selectedProposal}
-            isUpdatingStatus={isUpdatingStatus}
-            isConvertingToInvoice={isConvertingToInvoice}
-            onStatusChange={handleStatusChange}
-            onConvertToInvoice={handleConvertSelectedToInvoice}
-            onDeleteProposal={onDeleteClick}
-          />
-        </Dialog>
+          <Dialog 
+            open={isDetailsOpen} 
+            onOpenChange={(open) => {
+              setIsDetailsOpen(open);
+              if (!open) setSelectedProposal(null);
+            }}
+          >
+            <ProposalDetailsDialog
+              proposal={selectedProposal}
+              isUpdatingStatus={isUpdatingStatus}
+              isConvertingToInvoice={isConvertingToInvoice}
+              onStatusChange={handleStatusChange}
+              onConvertToInvoice={handleConvertSelectedToInvoice}
+              onDeleteProposal={onDeleteClick}
+            />
+          </Dialog>
+        </>
       )}
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

@@ -1,6 +1,6 @@
 
 import { format, parseISO } from "date-fns";
-import { ArrowUpRight, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { 
   Table, 
   TableHeader, 
@@ -10,7 +10,6 @@ import {
   TableCell 
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { DialogTrigger } from "@/components/ui/dialog";
 import { ProposalStatusBadge } from "./ProposalStatusBadge";
 import { ProposalWithContact } from "./types";
 
@@ -36,38 +35,48 @@ export const ProposalTable = ({ proposals, onSelectProposal, onDeleteProposal }:
         </TableHeader>
         <TableBody>
           {proposals.map((proposal) => (
-            <TableRow key={proposal.id}>
-              <TableCell>{proposal.title}</TableCell>
-              <TableCell>{proposal.contact?.name}</TableCell>
-              <TableCell className="hidden md:table-cell">
+            <TableRow 
+              key={proposal.id}
+              className="cursor-pointer hover:bg-muted/50"
+            >
+              <TableCell 
+                className="font-medium hover:text-primary transition-colors"
+                onClick={() => onSelectProposal(proposal)}
+              >
+                {proposal.title}
+              </TableCell>
+              <TableCell onClick={() => onSelectProposal(proposal)}>
+                {proposal.contact?.name}
+              </TableCell>
+              <TableCell 
+                className="hidden md:table-cell"
+                onClick={() => onSelectProposal(proposal)}
+              >
                 ${proposal.amount.toFixed(2)}
               </TableCell>
-              <TableCell className="hidden md:table-cell">
+              <TableCell 
+                className="hidden md:table-cell"
+                onClick={() => onSelectProposal(proposal)}
+              >
                 {proposal.due_date 
                   ? format(parseISO(proposal.due_date), "PP") 
                   : "Not set"}
               </TableCell>
-              <TableCell>
+              <TableCell onClick={() => onSelectProposal(proposal)}>
                 <ProposalStatusBadge status={proposal.status} />
               </TableCell>
-              <TableCell className="text-right flex items-center justify-end space-x-1">
+              <TableCell className="text-right">
                 <Button 
-                  variant="outline" 
+                  variant="ghost" 
                   size="icon"
-                  onClick={() => onDeleteProposal(proposal.id)}
-                  className="hover:bg-muted"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDeleteProposal(proposal.id);
+                  }}
+                  className="hover:bg-muted text-muted-foreground hover:text-destructive"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
-                <DialogTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="icon"
-                    onClick={() => onSelectProposal(proposal)}
-                  >
-                    <ArrowUpRight className="h-4 w-4" />
-                  </Button>
-                </DialogTrigger>
               </TableCell>
             </TableRow>
           ))}
