@@ -1,26 +1,17 @@
+
 import { useState, useEffect } from "react";
 import { supabase, Contact } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
-import { 
-  Table, 
-  TableHeader, 
-  TableRow, 
-  TableHead, 
-  TableBody, 
-  TableCell 
-} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Drawer, DrawerTrigger, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerFooter, DrawerClose } from "@/components/ui/drawer";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { CalendarIcon, Loader2, Plus, Search, Trash2, X } from "lucide-react";
-import { format, parseISO } from "date-fns";
+import { Plus } from "lucide-react";
+import { parseISO } from "date-fns";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
+import ContactList from "@/components/contacts/ContactList";
+import ContactDetails from "@/components/contacts/ContactDetails";
+import CreateContactForm from "@/components/contacts/CreateContactForm";
 
 type ContactComment = {
   id: string;
@@ -256,137 +247,16 @@ const ContactsPage = () => {
     }
   };
 
-  const filteredContacts = contacts.filter(contact => {
-    const searchLower = searchQuery.toLowerCase();
-    return (
-      contact.name.toLowerCase().includes(searchLower) ||
-      (contact.company && contact.company.toLowerCase().includes(searchLower)) ||
-      (contact.email && contact.email.toLowerCase().includes(searchLower)) ||
-      (contact.phone && contact.phone.toLowerCase().includes(searchLower))
-    );
-  });
+  const handleContactSelect = (contact: Contact) => {
+    setSelectedContact(contact);
+    if (isMobile) {
+      setContactDrawerOpen(true);
+    }
+  };
 
-  const ContactDetail = () => (
-    <>
-      <div className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Name</label>
-            <Input 
-              value={editedContact.name || ""}
-              onChange={(e) => setEditedContact({ ...editedContact, name: e.target.value })}
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Company</label>
-            <Input 
-              value={editedContact.company || ""}
-              onChange={(e) => setEditedContact({ ...editedContact, company: e.target.value })}
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Email</label>
-            <Input 
-              type="email"
-              value={editedContact.email || ""}
-              onChange={(e) => setEditedContact({ ...editedContact, email: e.target.value })}
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Phone</label>
-            <Input 
-              value={editedContact.phone || ""}
-              onChange={(e) => setEditedContact({ ...editedContact, phone: e.target.value })}
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Last Interaction</label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !lastInteractionDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {lastInteractionDate ? format(lastInteractionDate, "PPP") : "No date set"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={lastInteractionDate}
-                  onSelect={setLastInteractionDate}
-                  initialFocus
-                  className={cn("p-3 pointer-events-auto")}
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-        </div>
-        
-        <Button
-          className="w-full mt-4"
-          onClick={handleUpdateContact}
-          disabled={isEditingContact}
-        >
-          {isEditingContact ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Saving...
-            </>
-          ) : (
-            "Save Changes"
-          )}
-        </Button>
-      </div>
-      
-      <div className="mt-8 space-y-4">
-        <h3 className="text-lg font-medium">Comments</h3>
-        
-        <div className="flex gap-2">
-          <Textarea
-            placeholder="Add a comment..."
-            value={newComment}
-            onChange={handleCommentChange}
-            className="flex-1"
-          />
-          <Button 
-            onClick={handleAddComment} 
-            disabled={!newComment.trim() || commentLoading}
-          >
-            {commentLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add"}
-          </Button>
-        </div>
-        
-        <div className="space-y-4 max-h-[300px] overflow-y-auto">
-          {contactComments.length === 0 ? (
-            <p className="text-muted-foreground text-center py-4">No comments yet</p>
-          ) : (
-            contactComments.map((comment) => (
-              <div key={comment.id} className="border rounded-md p-3 bg-background">
-                <div className="flex justify-between items-start">
-                  <p className="whitespace-pre-wrap">{comment.text}</p>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDeleteComment(comment.id)}
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground mt-2">
-                  {format(parseISO(comment.created_at), "PPP p")}
-                </p>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-    </>
-  );
+  const handleEditedContactChange = (field: string, value: string) => {
+    setEditedContact(prev => ({ ...prev, [field]: value }));
+  };
   
   return (
     <div className="space-y-6">
@@ -405,142 +275,23 @@ const ContactsPage = () => {
               <DialogTitle>Create New Contact</DialogTitle>
             </DialogHeader>
             
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Name</label>
-                <Input 
-                  value={newContact.name}
-                  onChange={(e) => setNewContact({ ...newContact, name: e.target.value })}
-                  placeholder="John Doe"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Company</label>
-                <Input 
-                  value={newContact.company}
-                  onChange={(e) => setNewContact({ ...newContact, company: e.target.value })}
-                  placeholder="Acme Inc."
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Email</label>
-                <Input 
-                  type="email"
-                  value={newContact.email}
-                  onChange={(e) => setNewContact({ ...newContact, email: e.target.value })}
-                  placeholder="john@example.com"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Phone</label>
-                <Input 
-                  value={newContact.phone}
-                  onChange={(e) => setNewContact({ ...newContact, phone: e.target.value })}
-                  placeholder="(123) 456-7890"
-                />
-              </div>
-            </div>
-            
-            <DialogFooter>
-              <Button
-                onClick={handleCreateContact}
-                disabled={!newContact.name || isCreatingContact}
-              >
-                {isCreatingContact ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Creating...
-                  </>
-                ) : (
-                  "Create Contact"
-                )}
-              </Button>
-            </DialogFooter>
+            <CreateContactForm
+              newContact={newContact}
+              setNewContact={setNewContact}
+              isCreating={isCreatingContact}
+              onCreateContact={handleCreateContact}
+            />
           </DialogContent>
         </Dialog>
       </div>
       
-      <div className="flex items-center space-x-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search contacts..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-8"
-          />
-          {searchQuery && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute right-0 top-0 h-full"
-              onClick={() => setSearchQuery("")}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          )}
-        </div>
-      </div>
-      
-      {loading ? (
-        <div className="flex justify-center p-8">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      ) : filteredContacts.length === 0 ? (
-        <div className="text-center p-8">
-          <p className="text-lg text-muted-foreground">No contacts found</p>
-          {searchQuery && (
-            <p className="text-sm text-muted-foreground mt-2">
-              Try adjusting your search query
-            </p>
-          )}
-        </div>
-      ) : (
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Company</TableHead>
-                <TableHead className="hidden md:table-cell">Email</TableHead>
-                <TableHead className="hidden md:table-cell">Phone</TableHead>
-                <TableHead>Last Interaction</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredContacts.map((contact) => {
-                const handleRowClick = () => {
-                  setSelectedContact(contact);
-                  if (isMobile) {
-                    setContactDrawerOpen(true);
-                  }
-                };
-                
-                return (
-                  <TableRow
-                    key={contact.id}
-                    className="cursor-pointer hover:bg-muted/50"
-                    onClick={handleRowClick}
-                  >
-                    <TableCell>{contact.name}</TableCell>
-                    <TableCell>{contact.company}</TableCell>
-                    <TableCell className="hidden md:table-cell">{contact.email}</TableCell>
-                    <TableCell className="hidden md:table-cell">{contact.phone}</TableCell>
-                    <TableCell>
-                      {contact.last_interaction 
-                        ? format(parseISO(contact.last_interaction), "PP") 
-                        : "Not set"}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
-      )}
+      <ContactList
+        contacts={contacts}
+        loading={loading}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        onContactSelect={handleContactSelect}
+      />
       
       {selectedContact && !isMobile && (
         <Dialog open={!!selectedContact} onOpenChange={(open) => !open && setSelectedContact(null)}>
@@ -548,7 +299,21 @@ const ContactsPage = () => {
             <DialogHeader>
               <DialogTitle>{selectedContact.name}</DialogTitle>
             </DialogHeader>
-            <ContactDetail />
+            <ContactDetails
+              contact={selectedContact}
+              comments={contactComments}
+              newComment={newComment}
+              commentLoading={commentLoading}
+              isEditing={isEditingContact}
+              editedContact={editedContact}
+              lastInteractionDate={lastInteractionDate}
+              onEditedContactChange={handleEditedContactChange}
+              onLastInteractionDateChange={setLastInteractionDate}
+              onSaveChanges={handleUpdateContact}
+              onCommentChange={handleCommentChange}
+              onAddComment={handleAddComment}
+              onDeleteComment={handleDeleteComment}
+            />
           </DialogContent>
         </Dialog>
       )}
@@ -561,7 +326,23 @@ const ContactsPage = () => {
               <DrawerDescription>{selectedContact?.company}</DrawerDescription>
             </DrawerHeader>
             <div className="px-4">
-              {selectedContact && <ContactDetail />}
+              {selectedContact && (
+                <ContactDetails
+                  contact={selectedContact}
+                  comments={contactComments}
+                  newComment={newComment}
+                  commentLoading={commentLoading}
+                  isEditing={isEditingContact}
+                  editedContact={editedContact}
+                  lastInteractionDate={lastInteractionDate}
+                  onEditedContactChange={handleEditedContactChange}
+                  onLastInteractionDateChange={setLastInteractionDate}
+                  onSaveChanges={handleUpdateContact}
+                  onCommentChange={handleCommentChange}
+                  onAddComment={handleAddComment}
+                  onDeleteComment={handleDeleteComment}
+                />
+              )}
             </div>
             <DrawerFooter>
               <DrawerClose asChild>
