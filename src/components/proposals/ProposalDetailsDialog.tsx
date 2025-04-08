@@ -13,12 +13,20 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 
 interface ProposalDetailsDialogProps {
   proposal: ProposalWithContact | null;
   isUpdatingStatus: boolean;
   isConvertingToInvoice: boolean;
-  onStatusChange: (proposalId: string, newStatus: 'open' | 'accepted' | 'refused') => void;
+  onStatusChange: (proposalId: string, newStatus: string) => void;
   onConvertToInvoice: () => void;
   onDeleteProposal: (proposalId: string) => void;
 }
@@ -40,6 +48,10 @@ export const ProposalDetailsDialog = ({
     }).format(amount);
   };
 
+  const handleStatusChange = (newStatus: string) => {
+    onStatusChange(proposal.id, newStatus);
+  };
+
   return (
     <DialogContent className="sm:max-w-xl max-h-[85vh] overflow-y-auto">
       <DialogHeader>
@@ -58,6 +70,27 @@ export const ProposalDetailsDialog = ({
           <p className="text-sm text-muted-foreground">
             Amount: {formatCurrency(proposal.amount)}
           </p>
+        </div>
+
+        {/* Status Selector */}
+        <div className="grid gap-2">
+          <Label htmlFor="status-select">Proposal Status</Label>
+          <Select
+            disabled={isUpdatingStatus}
+            value={proposal.status}
+            onValueChange={handleStatusChange}
+          >
+            <SelectTrigger id="status-select" className="w-full">
+              <SelectValue placeholder="Select a status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="open">Open</SelectItem>
+              <SelectItem value="accepted">Accepted</SelectItem>
+              <SelectItem value="lost">Lost</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="refused">Refused</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <Separator />
@@ -125,31 +158,6 @@ export const ProposalDetailsDialog = ({
         </div>
 
         <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto mt-2 sm:mt-0">
-          {proposal.status === 'open' && (
-            <>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onStatusChange(proposal.id, 'refused')}
-                disabled={isUpdatingStatus}
-                className="sm:mr-2"
-              >
-                <XCircle className="h-4 w-4 mr-2" />
-                Mark Refused
-              </Button>
-
-              <Button
-                variant="default"
-                size="sm"
-                onClick={() => onStatusChange(proposal.id, 'accepted')}
-                disabled={isUpdatingStatus}
-              >
-                <CheckCircle className="h-4 w-4 mr-2" />
-                Mark Accepted
-              </Button>
-            </>
-          )}
-
           {proposal.status === 'accepted' && (
             <Button
               variant="default"

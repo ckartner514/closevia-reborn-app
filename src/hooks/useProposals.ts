@@ -49,9 +49,12 @@ export const useProposals = (userId: string | undefined) => {
     }
   };
 
-  const handleStatusChange = async (proposalId: string, newStatus: 'open' | 'accepted' | 'refused') => {
+  const handleStatusChange = async (proposalId: string, newStatus: string) => {
     try {
       setIsUpdatingStatus(true);
+      
+      console.log(`Updating proposal ${proposalId} status to: ${newStatus}`);
+      
       const { error } = await supabase
         .from("deals")
         .update({ status: newStatus })
@@ -59,7 +62,10 @@ export const useProposals = (userId: string | undefined) => {
 
       if (error) throw error;
       
-      setProposals(proposals.map(p => p.id === proposalId ? { ...p, status: newStatus } : p));
+      // Update the local state with the new status
+      setProposals(proposals.map(p => 
+        p.id === proposalId ? { ...p, status: newStatus } : p
+      ));
       
       toast.success(`Proposal marked as ${newStatus}`);
     } catch (error) {
