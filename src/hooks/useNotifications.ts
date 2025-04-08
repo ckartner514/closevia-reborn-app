@@ -78,13 +78,6 @@ export const useNotifications = () => {
     };
 
     fetchNotifications();
-    
-    // Set up a refresh interval to check for new notifications (due dates that have passed)
-    const refreshInterval = setInterval(fetchNotifications, 60000); // Check every minute
-    
-    return () => {
-      clearInterval(refreshInterval);
-    };
   }, []);
 
   // Mark a notification as viewed

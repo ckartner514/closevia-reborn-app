@@ -24,14 +24,6 @@ import {
 import { toast } from "sonner";
 import ContactComments from "@/components/contacts/ContactComments";
 import { supabase } from "@/lib/supabase";
-import { CalendarIcon } from "lucide-react";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
 
 type InvoiceComment = {
   id: string;
@@ -54,16 +46,10 @@ export const InvoiceDetailsDrawer = ({
   const [comments, setComments] = useState<InvoiceComment[]>([]);
   const [newComment, setNewComment] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [dueDate, setDueDate] = useState<Date | undefined>(
-    invoice?.due_date ? parseISO(invoice.due_date) : undefined
-  );
-  const [isUpdatingDate, setIsUpdatingDate] = useState(false);
 
   useEffect(() => {
     if (invoice) {
       fetchComments();
-      setDueDate(invoice.due_date ? parseISO(invoice.due_date) : undefined);
-      setStatus(invoice.invoice_status || "pending");
     }
   }, [invoice]);
 
@@ -131,46 +117,6 @@ export const InvoiceDetailsDrawer = ({
     } catch (error) {
       console.error("Error deleting comment:", error);
       toast.error("Failed to delete comment");
-    }
-  };
-
-  const handleDateChange = async (date: Date | undefined) => {
-    if (!invoice || isUpdatingDate) return;
-    
-    try {
-      setIsUpdatingDate(true);
-      
-      // Fix: Update the due_date field - fixed table name from "deals" to ensure we update the right record
-      const { error } = await supabase
-        .from("deals")
-        .update({ due_date: date ? date.toISOString() : null })
-        .eq("id", invoice.id);
-
-      if (error) throw error;
-      
-      setDueDate(date);
-      toast.success("Due date updated");
-      
-      // Clear any existing notifications for this item in localStorage to ensure notifications will work
-      const deletedNotifications = JSON.parse(localStorage.getItem('deletedNotifications') || '{}');
-      const viewedNotifications = JSON.parse(localStorage.getItem('viewedNotifications') || '{}');
-      
-      // Remove this invoice from the deleted and viewed lists to ensure it can trigger notifications
-      if (deletedNotifications[invoice.id]) {
-        delete deletedNotifications[invoice.id];
-        localStorage.setItem('deletedNotifications', JSON.stringify(deletedNotifications));
-      }
-      
-      if (viewedNotifications[invoice.id]) {
-        delete viewedNotifications[invoice.id];
-        localStorage.setItem('viewedNotifications', JSON.stringify(viewedNotifications));
-      }
-      
-    } catch (error) {
-      console.error("Error updating due date:", error);
-      toast.error("Failed to update due date");
-    } finally {
-      setIsUpdatingDate(false);
     }
   };
 
@@ -255,36 +201,15 @@ export const InvoiceDetailsDrawer = ({
           </div>
         </div>
 
-        <Separator />
-
-        <div>
-          <div className="flex items-center justify-between">
-            <p className="text-muted-foreground text-sm">Due Date</p>
-          </div>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  "w-full justify-start text-left font-normal mt-1",
-                  !dueDate && "text-muted-foreground"
-                )}
-                disabled={isUpdatingDate}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {dueDate ? format(dueDate, "PPP") : <span>No date set</span>}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={dueDate}
-                onSelect={handleDateChange}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
+        {invoice.due_date && (
+          <>
+            <Separator />
+            <div>
+              <p className="text-muted-foreground text-sm">Due Date</p>
+              <p>{format(parseISO(invoice.due_date), "PPP")}</p>
+            </div>
+          </>
+        )}
 
         {invoice.notes && (
           <>
