@@ -44,16 +44,22 @@ export const useTeamMembers = (user: User | null) => {
         if (error) throw error;
         
         if (data && data.organizations) {
-          // Handle organizations data safely, ensuring type safety
-          const orgName = typeof data.organizations === 'object' 
-            ? (Array.isArray(data.organizations) 
-                ? data.organizations[0]?.name 
-                : data.organizations.name)
-            : '';
+          // Fix the type issues by properly handling different possible data structures
+          let orgName = 'Unknown Organization';
+          
+          if (typeof data.organizations === 'object') {
+            // Handle both array and object cases
+            if (Array.isArray(data.organizations) && data.organizations.length > 0) {
+              orgName = data.organizations[0]?.name || orgName;
+            } else if ('name' in data.organizations) {
+              // Use type guard to check if 'name' exists on the object
+              orgName = data.organizations.name || orgName;
+            }
+          }
           
           setCurrentOrg({
             id: data.org_id,
-            name: orgName || 'Unknown Organization',
+            name: orgName,
             userRole: data.role
           });
         }
