@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useRole } from "@/contexts/RoleContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface SidebarProps {
@@ -57,6 +58,7 @@ const SidebarItem = ({
 export function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
   const location = useLocation();
   const { signOut } = useAuth();
+  const { isAdmin, isViewer } = useRole();
   const isMobile = useIsMobile();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -148,12 +150,14 @@ export function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
               href="/contacts"
               active={location.pathname === "/contacts"}
             />
-            <SidebarItem
-              icon={PlusCircle}
-              label="Create Proposal"
-              href="/create"
-              active={location.pathname === "/create"}
-            />
+            {!isViewer && (
+              <SidebarItem
+                icon={PlusCircle}
+                label="Create Proposal"
+                href="/create"
+                active={location.pathname === "/create"}
+              />
+            )}
             <SidebarItem
               icon={FileText}
               label="Proposals"

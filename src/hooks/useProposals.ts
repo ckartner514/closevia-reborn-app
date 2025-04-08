@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { ProposalWithContact } from "@/components/proposals/types";
+import { useOrganization } from "./useOrganization";
 
 export const useProposals = (userId: string | undefined) => {
   const [proposals, setProposals] = useState<ProposalWithContact[]>([]);
@@ -10,11 +11,12 @@ export const useProposals = (userId: string | undefined) => {
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isConvertingToInvoice, setIsConvertingToInvoice] = useState(false);
   const [isDeletingProposal, setIsDeletingProposal] = useState(false);
+  const { organization } = useOrganization();
 
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || !organization) return;
     fetchProposals();
-  }, [userId]);
+  }, [userId, organization]);
 
   const fetchProposals = async () => {
     try {
@@ -104,7 +106,8 @@ export const useProposals = (userId: string | undefined) => {
         status: "invoice", 
         invoice_status: "pending",
         due_date: proposal.due_date,
-        user_id: userId
+        user_id: userId,
+        org_id: organization?.id
       };
       
       console.log("Creating invoice with data:", invoiceData);
