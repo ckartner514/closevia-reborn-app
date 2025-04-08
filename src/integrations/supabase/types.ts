@@ -51,6 +51,7 @@ export type Database = {
           id: string
           last_interaction: string
           name: string
+          org_id: string | null
           phone: string | null
           status: string
           user_id: string
@@ -64,6 +65,7 @@ export type Database = {
           id?: string
           last_interaction: string
           name?: string
+          org_id?: string | null
           phone?: string | null
           status?: string
           user_id?: string
@@ -77,11 +79,20 @@ export type Database = {
           id?: string
           last_interaction?: string
           name?: string
+          org_id?: string | null
           phone?: string | null
           status?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "contacts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       deals: {
         Row: {
@@ -93,6 +104,7 @@ export type Database = {
           invoice_status: string | null
           items: Json | null
           notes: string | null
+          org_id: string | null
           status: string
           title: string
           user_id: string
@@ -106,6 +118,7 @@ export type Database = {
           invoice_status?: string | null
           items?: Json | null
           notes?: string | null
+          org_id?: string | null
           status?: string
           title: string
           user_id: string
@@ -119,6 +132,7 @@ export type Database = {
           invoice_status?: string | null
           items?: Json | null
           notes?: string | null
+          org_id?: string | null
           status?: string
           title?: string
           user_id?: string
@@ -131,7 +145,67 @@ export type Database = {
             referencedRelation: "contacts"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "deals_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      invitations: {
+        Row: {
+          accepted: boolean
+          created_at: string
+          email: string
+          id: string
+          org_id: string
+          role: string
+        }
+        Insert: {
+          accepted?: boolean
+          created_at?: string
+          email: string
+          id?: string
+          org_id: string
+          role: string
+        }
+        Update: {
+          accepted?: boolean
+          created_at?: string
+          email?: string
+          id?: string
+          org_id?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invitations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organizations: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -156,6 +230,38 @@ export type Database = {
           phone?: string | null
         }
         Relationships: []
+      }
+      user_organizations: {
+        Row: {
+          created_at: string
+          id: string
+          org_id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          org_id: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          org_id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_organizations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

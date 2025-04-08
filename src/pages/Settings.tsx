@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
@@ -7,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
+import { TeamMembers } from "@/components/settings/TeamMembers";
 
 // Define the Profile type
 type Profile = {
@@ -115,7 +117,7 @@ const Settings = () => {
     <div className="space-y-6">
       <h1 className="page-title">Account Settings</h1>
       
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Profile Information</CardTitle>
@@ -196,38 +198,8 @@ const Settings = () => {
           </CardContent>
         </Card>
         
-        <Card>
-          <CardHeader>
-            <CardTitle>Account Management</CardTitle>
-            <CardDescription>
-              Manage your account settings
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-sm font-medium mb-2">Data Storage</h3>
-                <p className="text-sm text-muted-foreground">
-                  Your data is securely stored in your Supabase project. All client information, proposals, and invoices are protected with Row Level Security (RLS) policies.
-                </p>
-              </div>
-              
-              <div>
-                <h3 className="text-sm font-medium mb-2">Data Privacy</h3>
-                <p className="text-sm text-muted-foreground">
-                  Closevia only shows you data that belongs to your account. Other users cannot access your contacts, proposals, or invoices.
-                </p>
-              </div>
-              
-              <div className="pt-4">
-                <h3 className="text-sm font-medium mb-2">Need help?</h3>
-                <p className="text-sm text-muted-foreground">
-                  If you need assistance with your account or have any questions about Closevia, please contact support.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Team Members Section */}
+        <TeamMembers />
       </div>
     </div>
   );
