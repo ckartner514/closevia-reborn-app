@@ -24,14 +24,6 @@ import {
 import { toast } from "sonner";
 import ContactComments from "@/components/contacts/ContactComments";
 import { supabase } from "@/lib/supabase";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 type InvoiceComment = {
   id: string;
@@ -54,16 +46,10 @@ export const InvoiceDetailsDrawer = ({
   const [comments, setComments] = useState<InvoiceComment[]>([]);
   const [newComment, setNewComment] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [dueDate, setDueDate] = useState<Date | undefined>(
-    invoice?.due_date ? new Date(invoice.due_date) : undefined
-  );
-  const [dateOpen, setDateOpen] = useState(false);
 
   useEffect(() => {
     if (invoice) {
       fetchComments();
-      setStatus(invoice.invoice_status);
-      setDueDate(invoice.due_date ? new Date(invoice.due_date) : undefined);
     }
   }, [invoice]);
 
@@ -131,31 +117,6 @@ export const InvoiceDetailsDrawer = ({
     } catch (error) {
       console.error("Error deleting comment:", error);
       toast.error("Failed to delete comment");
-    }
-  };
-
-  const handleDueDateChange = async (date: Date | undefined) => {
-    if (!invoice) return;
-    
-    setDueDate(date);
-    
-    try {
-      const { error } = await supabase
-        .from("deals")
-        .update({ due_date: date ? date.toISOString() : null })
-        .eq("id", invoice.id);
-
-      if (error) throw error;
-      
-      // Clear existing notifications in local storage to ensure reminders reset
-      const deletedNotifications = JSON.parse(localStorage.getItem('deletedNotifications') || '{}');
-      deletedNotifications[invoice.id] = false;
-      localStorage.setItem('deletedNotifications', JSON.stringify(deletedNotifications));
-      
-      toast.success("Due date updated");
-    } catch (error) {
-      console.error("Error updating due date:", error);
-      toast.error("Failed to update due date");
     }
   };
 
@@ -240,36 +201,15 @@ export const InvoiceDetailsDrawer = ({
           </div>
         </div>
 
-        <Separator />
-        
-        <div className="grid gap-2">
-          <label className="text-sm font-medium">Due Date</label>
-          <Popover open={dateOpen} onOpenChange={setDateOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  "w-full justify-start text-left font-normal",
-                  !dueDate && "text-muted-foreground"
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {dueDate ? format(dueDate, "PPP") : "Select date"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={dueDate}
-                onSelect={(date) => {
-                  handleDueDateChange(date);
-                  setDateOpen(false);
-                }}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
+        {invoice.due_date && (
+          <>
+            <Separator />
+            <div>
+              <p className="text-muted-foreground text-sm">Due Date</p>
+              <p>{format(parseISO(invoice.due_date), "PPP")}</p>
+            </div>
+          </>
+        )}
 
         {invoice.notes && (
           <>

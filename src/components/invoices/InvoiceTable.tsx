@@ -71,7 +71,6 @@ export function InvoiceTable({
             <TableHead>Date</TableHead>
             <TableHead>Contact</TableHead>
             <TableHead>Amount</TableHead>
-            <TableHead>Due Date</TableHead>
             <TableHead>Status</TableHead>
             {!readOnly && onDeleteInvoice && (
               <TableHead className="text-right">Actions</TableHead>
@@ -101,9 +100,6 @@ export function InvoiceTable({
                 </div>
               </TableCell>
               <TableCell>{formatCurrency(invoice.amount)}</TableCell>
-              <TableCell>
-                {invoice.due_date ? format(parseISO(invoice.due_date), "MMM d, yyyy") : "-"}
-              </TableCell>
               <TableCell>{getStatusBadge(invoice.invoice_status)}</TableCell>
               {!readOnly && onDeleteInvoice && (
                 <TableCell className="text-right">
