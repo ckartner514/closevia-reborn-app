@@ -22,7 +22,7 @@ interface HeaderProps {
 export function Header({ collapsed, setCollapsed }: HeaderProps) {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
-  const { notifications } = useNotifications();
+  const notifications = useNotifications();
 
   // Get the user's initials from their email or name
   const getInitials = () => {
@@ -93,10 +93,10 @@ export function Header({ collapsed, setCollapsed }: HeaderProps) {
                     >
                       <div className="font-medium">{notification.title}</div>
                       <div className="text-sm text-muted-foreground">
-                        {notification.type === 'proposal' ? 'Follow-up' : 'Payment'} due: {notification.date}
+                        {notification.type === 'proposal' ? 'Follow-up' : 'Payment'} due: {notification.due_date}
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        Client: {notification.client}
+                        Client: {notification.contact.name}
                       </div>
                     </DropdownMenuItem>
                   ))}

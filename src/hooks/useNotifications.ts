@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { Contact, Deal } from "@/types";
+import { format, isBefore } from "date-fns";
 
 export interface NotificationItem {
   id: string;
@@ -11,51 +11,57 @@ export interface NotificationItem {
     id: string;
     name: string;
   };
-  type: "invoice" | "proposal";
+  type: "proposal" | "invoice";
 }
 
-export const useNotifications = () => {
+export const useNotifications = (): NotificationItem[] => {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
 
   useEffect(() => {
     const fetchNotifications = async () => {
-      const today = new Date().toISOString().split("T")[0];
+      const today = new Date();
 
-      // Fetch overdue proposals
-      const { data: overdueProposals, error: proposalsError } = await supabase
+      const { data: proposals, error: proposalsError } = await supabase
         .from("deals")
-        .select("id, title, due_date, contact(id, name)")
-        .eq("status", "proposal")
-        .lt("due_date", today);
+        .select("id, title, due_date, contact:contacts(id, name)")
+        .eq("status", "accepted");
 
-      // Fetch unpaid & overdue invoices
-      const { data: unpaidInvoices, error: invoicesError } = await supabase
+      const { data: invoices, error: invoicesError } = await supabase
         .from("deals")
-        .select("id, title, due_date, contact(id, name)")
+        .select("id, title, due_date, contact:contacts(id, name)")
         .eq("status", "invoice")
-        .eq("invoice_status", "pending")
-        .lt("due_date", today);
+        .eq("invoice_status", "pending");
 
       if (proposalsError || invoicesError) {
         console.error("Error fetching notifications:", proposalsError || invoicesError);
         return;
       }
 
-      const proposalNotifications = (overdueProposals ?? []).map((deal) => ({
-        id: deal.id,
-        title: deal.title,
-        due_date: deal.due_date,
-        contact: deal.contact as { id: string; name: string },
-        type: "proposal" as const,
-      }));
+      const proposalNotifications: NotificationItem[] =
+        (proposals || [])
+          .filter((deal) => deal.due_date && isBefore(new Date(deal.due_date), today))
+          .map((deal) => ({
+            id: deal.id,
+            title: deal.title,
+            due_date: format(new Date(deal.due_date), "PPP"),
+            contact: Array.isArray(deal.contact)
+              ? (deal.contact[0] as { id: string; name: string })
+              : (deal.contact as { id: string; name: string }),
+            type: "proposal",
+          }));
 
-      const invoiceNotifications = (unpaidInvoices ?? []).map((deal) => ({
-        id: deal.id,
-        title: deal.title,
-        due_date: deal.due_date,
-        contact: deal.contact as { id: string; name: string },
-        type: "invoice" as const,
-      }));
+      const invoiceNotifications: NotificationItem[] =
+        (invoices || [])
+          .filter((deal) => deal.due_date && isBefore(new Date(deal.due_date), today))
+          .map((deal) => ({
+            id: deal.id,
+            title: deal.title,
+            due_date: format(new Date(deal.due_date), "PPP"),
+            contact: Array.isArray(deal.contact)
+              ? (deal.contact[0] as { id: string; name: string })
+              : (deal.contact as { id: string; name: string }),
+            type: "invoice",
+          }));
 
       setNotifications([...proposalNotifications, ...invoiceNotifications]);
     };
