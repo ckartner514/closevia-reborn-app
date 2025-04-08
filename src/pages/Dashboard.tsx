@@ -54,6 +54,9 @@ const Dashboard = () => {
 
         if (invoicesError) throw invoicesError;
 
+        console.log("Fetched invoices for dashboard:", invoices);
+        console.log("Fetched proposals for dashboard:", proposals);
+
         // Calculate metrics
         const proposalsSent = proposals.length;
         const dealsClosed = proposals.filter(p => p.status === "accepted").length;

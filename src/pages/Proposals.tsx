@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase, Contact } from "@/lib/supabase";
@@ -226,24 +227,30 @@ const ProposalsPage = () => {
         contact_id: selectedProposal.contact_id,
         title: `Invoice for: ${selectedProposal.title}`,
         amount: data.amount,
-        user_id: user!.id,
-        notes: data.notes || null,
-        status: "invoice", // Mark as invoice type
-        invoice_status: "pending" // Default invoice status
+        notes: data.notes,
+        status: "invoice",
+        invoice_status: "pending",
+        proposal_id: selectedProposal.id,
+        user_id: user!.id
       });
       
-      const { data: invoiceData, error } = await supabase
+      // Prepare the invoice data - make sure to include all required fields
+      const invoiceData = {
+        contact_id: selectedProposal.contact_id,
+        title: `Invoice for: ${selectedProposal.title}`,
+        amount: data.amount,
+        notes: data.notes || null,
+        status: "invoice", 
+        invoice_status: "pending",
+        due_date: selectedProposal.due_date,
+        proposal_id: selectedProposal.id,
+        user_id: user!.id
+      };
+      
+      // Insert the invoice into the deals table
+      const { data: newInvoice, error } = await supabase
         .from("deals")
-        .insert({
-          contact_id: selectedProposal.contact_id,
-          title: `Invoice for: ${selectedProposal.title}`,
-          amount: data.amount,
-          user_id: user!.id,
-          notes: data.notes || null,
-          status: "invoice", // Use status to differentiate from proposals
-          invoice_status: "pending", // Default invoice status
-          proposal_id: selectedProposal.id // Link back to the original proposal
-        })
+        .insert(invoiceData)
         .select('id')
         .single();
 
@@ -252,11 +259,12 @@ const ProposalsPage = () => {
         throw error;
       }
       
-      setInvoiceId(invoiceData.id);
+      setInvoiceId(newInvoice.id);
       setInvoiceCreated(true);
       setInvoiceStep(3);
       toast.success("Invoice created successfully!");
       
+      // Refresh proposals list
       fetchProposals();
     } catch (error) {
       console.error("Error creating invoice:", error);
