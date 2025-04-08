@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase, Invoice } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
@@ -250,7 +251,7 @@ const InvoicesPage = () => {
             <SelectValue placeholder="All contacts" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All contacts</SelectItem>
+            <SelectItem value="all">All contacts</SelectItem>
             {contacts.map(contact => (
               <SelectItem key={contact.id} value={contact.id}>
                 {contact.name} ({contact.company})
