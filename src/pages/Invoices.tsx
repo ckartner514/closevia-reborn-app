@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase, Invoice } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";

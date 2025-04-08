@@ -1,5 +1,6 @@
 
 import { Sidebar } from "@/components/layout/Sidebar";
+import { Header } from "@/components/layout/Header";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useState, useEffect } from "react";
@@ -51,6 +52,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           isMobile ? "ml-0" : collapsed ? "ml-16" : "ml-64"
         )}
       >
+        <Header />
         <div className="closevia-container flex-1">{children}</div>
       </main>
     </div>

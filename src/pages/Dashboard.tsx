@@ -36,7 +36,7 @@ const Dashboard = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        // Fetch proposals for counts and charts - update to use deals table
+        // Fetch proposals for counts and charts - using deals table
         const { data: proposals, error: proposalsError } = await supabase
           .from("deals")
           .select("*")
@@ -52,7 +52,7 @@ const Dashboard = () => {
 
         if (invoicesError) throw invoicesError;
 
-        // Calculate metrics - updated to use correct status value
+        // Calculate metrics - using the correct status values
         const proposalsSent = proposals.length;
         const dealsClosed = proposals.filter(p => p.status === "accepted").length;
         const totalInvoiceAmount = invoices.reduce((sum, invoice) => sum + invoice.amount, 0);
@@ -120,7 +120,7 @@ const Dashboard = () => {
       }
     });
 
-    // Populate proposal data with status breakdown
+    // Populate proposal data with status breakdown - use correct status values
     proposals.forEach(proposal => {
       const proposalDate = parseISO(proposal.created_at);
       if (isAfter(proposalDate, startDate)) {
@@ -129,7 +129,7 @@ const Dashboard = () => {
         if (monthData) {
           monthData.proposals += 1;
           
-          // Add status-specific counts
+          // Add status-specific counts with correct status values
           if (proposal.status === "open") {
             monthData.openProposals += 1;
           } else if (proposal.status === "accepted") {

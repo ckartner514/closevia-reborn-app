@@ -229,16 +229,22 @@ const ProposalsPage = () => {
           proposal_id: selectedProposal.id,
           amount: data.amount,
           user_id: user!.id,
+          notes: data.notes || null
         })
         .select('id')
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error creating invoice:", error);
+        throw error;
+      }
       
       setInvoiceId(invoiceData.id);
       setInvoiceCreated(true);
       setInvoiceStep(3);
       toast.success("Invoice created successfully!");
+      
+      fetchProposals();
     } catch (error) {
       console.error("Error creating invoice:", error);
       toast.error("Failed to create invoice");
