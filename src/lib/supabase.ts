@@ -46,19 +46,28 @@ export type Proposal = {
   user_id: string;
 };
 
-export type Invoice = {
+export type Deal = {
   id: string;
   contact_id: string;
-  proposal_id?: string | null;
+  title: string;
   amount: number;
+  due_date: string | null;
+  status: string;
+  invoice_status?: string;
+  notes?: string | null;
   created_at: string;
   user_id: string;
+  items?: any | null;
   contact?: {
     id: string;
     name: string;
     company: string;
   };
+  proposal_id?: string | null;
 };
+
+// For backward compatibility - use Deal as Invoice
+export type Invoice = Deal;
 
 export type User = {
   id: string;

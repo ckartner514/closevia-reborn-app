@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
@@ -36,23 +35,19 @@ const Dashboard = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        // Fetch proposals for counts and charts - using deals table
-        const { data: proposals, error: proposalsError } = await supabase
+        // Fetch deals for both proposal and invoice data
+        const { data: deals, error: dealsError } = await supabase
           .from("deals")
           .select("*")
           .eq("user_id", user.id);
 
-        if (proposalsError) throw proposalsError;
+        if (dealsError) throw dealsError;
 
-        // Fetch invoices for financial metrics
-        const { data: invoices, error: invoicesError } = await supabase
-          .from("invoices")
-          .select("*")
-          .eq("user_id", user.id);
+        // Filter proposals and invoices from deals
+        const proposals = deals.filter(deal => deal.status !== 'invoice');
+        const invoices = deals.filter(deal => deal.status === 'invoice');
 
-        if (invoicesError) throw invoicesError;
-
-        // Calculate metrics - using the correct status values
+        // Calculate metrics
         const proposalsSent = proposals.length;
         const dealsClosed = proposals.filter(p => p.status === "accepted").length;
         const totalInvoiceAmount = invoices.reduce((sum, invoice) => sum + invoice.amount, 0);
@@ -108,7 +103,7 @@ const Dashboard = () => {
       currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
     }
 
-    // Populate revenue data
+    // Populate revenue data from invoices
     invoices.forEach(invoice => {
       const invoiceDate = parseISO(invoice.created_at);
       if (isAfter(invoiceDate, startDate)) {
@@ -120,7 +115,7 @@ const Dashboard = () => {
       }
     });
 
-    // Populate proposal data with status breakdown - use correct status values
+    // Populate proposal data with status breakdown - use actual status values from DB
     proposals.forEach(proposal => {
       const proposalDate = parseISO(proposal.created_at);
       if (isAfter(proposalDate, startDate)) {
@@ -129,7 +124,7 @@ const Dashboard = () => {
         if (monthData) {
           monthData.proposals += 1;
           
-          // Add status-specific counts with correct status values
+          // Add status-specific counts
           if (proposal.status === "open") {
             monthData.openProposals += 1;
           } else if (proposal.status === "accepted") {

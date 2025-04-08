@@ -225,20 +225,25 @@ const ProposalsPage = () => {
       
       console.log("Creating invoice with data:", {
         contact_id: selectedProposal.contact_id,
-        proposal_id: selectedProposal.id,
+        title: `Invoice for: ${selectedProposal.title}`,
         amount: data.amount,
         user_id: user!.id,
-        notes: data.notes || null
+        notes: data.notes || null,
+        status: "invoice", // Mark as invoice type
+        invoice_status: "pending" // Default invoice status
       });
       
       const { data: invoiceData, error } = await supabase
-        .from("invoices")
+        .from("deals")
         .insert({
           contact_id: selectedProposal.contact_id,
-          proposal_id: selectedProposal.id,
+          title: `Invoice for: ${selectedProposal.title}`,
           amount: data.amount,
           user_id: user!.id,
-          notes: data.notes || null
+          notes: data.notes || null,
+          status: "invoice", // Use status to differentiate from proposals
+          invoice_status: "pending", // Default invoice status
+          proposal_id: selectedProposal.id // Link back to the original proposal
         })
         .select('id')
         .single();

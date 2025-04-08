@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from "react";
-import { supabase, Invoice } from "@/lib/supabase";
+import { supabase, Deal } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { 
   Table, 
@@ -35,16 +34,12 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { DateRange } from "react-day-picker";
 
-type InvoiceWithContact = Invoice & {
+type InvoiceWithContact = Deal & {
   contact: {
     id: string;
     name: string;
     company: string;
   };
-  proposal?: {
-    id: string;
-    title: string;
-  } | null;
 };
 
 const InvoicesPage = () => {
@@ -69,17 +64,15 @@ const InvoicesPage = () => {
       console.log("Fetching invoices for user:", user!.id);
       
       const { data, error } = await supabase
-        .from("invoices")
+        .from("deals")
         .select(`
           *,
           contact:contact_id (
             id, name, company
-          ),
-          proposal:proposal_id (
-            id, title
           )
         `)
         .eq("user_id", user!.id)
+        .eq("status", "invoice")
         .order("created_at", { ascending: false });
 
       if (error) {
@@ -91,8 +84,7 @@ const InvoicesPage = () => {
       
       const invoicesWithContacts = data.map((item: any) => ({
         ...item,
-        contact: item.contact,
-        proposal: item.proposal
+        contact: item.contact
       }));
       
       setInvoices(invoicesWithContacts);
@@ -125,7 +117,7 @@ const InvoicesPage = () => {
       "Contact",
       "Company",
       "Amount",
-      "Related Proposal",
+      "Title",
     ];
     
     const rows = filteredInvoices.map((invoice) => [
@@ -133,7 +125,7 @@ const InvoicesPage = () => {
       invoice.contact?.name || "",
       invoice.contact?.company || "",
       invoice.amount.toFixed(2),
-      invoice.proposal?.title || "",
+      invoice.title,
     ]);
     
     const csvContent = [
@@ -182,10 +174,10 @@ const InvoicesPage = () => {
       const query = searchQuery.toLowerCase();
       const matchesContact = invoice.contact?.name.toLowerCase().includes(query) || 
                             invoice.contact?.company.toLowerCase().includes(query);
-      const matchesProposal = invoice.proposal?.title.toLowerCase().includes(query);
+      const matchesTitle = invoice.title.toLowerCase().includes(query);
       const matchesAmount = invoice.amount.toString().includes(query);
       
-      return matchesContact || matchesProposal || matchesAmount;
+      return matchesContact || matchesTitle || matchesAmount;
     }
     
     return true;
@@ -391,20 +383,24 @@ const InvoicesPage = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Created</TableHead>
+                <TableHead>Title</TableHead>
                 <TableHead>Contact</TableHead>
                 <TableHead className="hidden md:table-cell">Company</TableHead>
                 <TableHead>Amount</TableHead>
-                <TableHead className="hidden md:table-cell">Related Proposal</TableHead>
+                <TableHead className="hidden md:table-cell">Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredInvoices.map((invoice) => (
                 <TableRow key={invoice.id}>
                   <TableCell>{format(parseISO(invoice.created_at), "PP")}</TableCell>
+                  <TableCell>{invoice.title}</TableCell>
                   <TableCell>{invoice.contact?.name}</TableCell>
                   <TableCell className="hidden md:table-cell">{invoice.contact?.company}</TableCell>
                   <TableCell>${invoice.amount.toFixed(2)}</TableCell>
-                  <TableCell className="hidden md:table-cell">{invoice.proposal?.title || "-"}</TableCell>
+                  <TableCell className="hidden md:table-cell">
+                    {invoice.invoice_status || "pending"}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
