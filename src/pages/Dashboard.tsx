@@ -15,7 +15,8 @@ const Dashboard = () => {
     revenueData, 
     proposalData, 
     period, 
-    setPeriod 
+    setPeriod,
+    topClients 
   } = useDashboardData(user?.id);
   const [userFullName, setUserFullName] = useState<string | null>(null);
 
@@ -68,6 +69,7 @@ const Dashboard = () => {
             proposalData={proposalData}
             period={period}
             onPeriodChange={setPeriod}
+            topClients={topClients}
           />
         </>
       )}

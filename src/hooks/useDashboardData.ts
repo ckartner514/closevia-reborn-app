@@ -1,13 +1,17 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { format, subMonths, isAfter, parseISO } from "date-fns";
+import { format, subMonths, isAfter, parseISO, isBefore } from "date-fns";
 
 export type Period = "3months" | "6months" | "1year";
+
 export type DashboardMetrics = {
   proposalsSent: number;
   dealsClosed: number;
   totalInvoiceAmount: number;
+  openProposals: number;
+  overdueInvoices: number;
+  conversionRate: number;
 };
 
 export const useDashboardData = (userId: string | undefined) => {
@@ -16,9 +20,13 @@ export const useDashboardData = (userId: string | undefined) => {
     proposalsSent: 0,
     dealsClosed: 0,
     totalInvoiceAmount: 0,
+    openProposals: 0,
+    overdueInvoices: 0,
+    conversionRate: 0,
   });
   const [revenueData, setRevenueData] = useState<any[]>([]);
   const [proposalData, setProposalData] = useState<any[]>([]);
+  const [topClients, setTopClients] = useState<{ name: string; company: string; revenue: number }[]>([]);
   const [period, setPeriod] = useState<Period>("6months");
 
   useEffect(() => {
@@ -29,7 +37,7 @@ export const useDashboardData = (userId: string | undefined) => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Fetch proposals separately - exclude invoice records
+      // Fetch proposals
       const { data: proposals, error: proposalsError } = await supabase
         .from("deals")
         .select("*")
@@ -38,10 +46,19 @@ export const useDashboardData = (userId: string | undefined) => {
 
       if (proposalsError) throw proposalsError;
 
-      // Fetch invoices separately - only PAID invoices count toward revenue
+      // Fetch all invoices
+      const { data: allInvoices, error: allInvoicesError } = await supabase
+        .from("deals")
+        .select("*, contact:contacts(name, company)")
+        .eq("user_id", userId)
+        .eq("status", "invoice");
+
+      if (allInvoicesError) throw allInvoicesError;
+
+      // Fetch paid invoices only
       const { data: invoices, error: invoicesError } = await supabase
         .from("deals")
-        .select("*")
+        .select("*, contact:contacts(name, company)")
         .eq("user_id", userId)
         .eq("status", "invoice")
         .eq("invoice_status", "paid");
@@ -51,7 +68,25 @@ export const useDashboardData = (userId: string | undefined) => {
       console.log("Fetched paid invoices for dashboard:", invoices);
       console.log("Fetched proposals for dashboard:", proposals);
 
-      // Calculate metrics
+      // Calculate open proposals (status = 'open')
+      const openProposals = proposals.filter(p => p.status === "open").length;
+
+      // Calculate overdue invoices
+      const today = new Date();
+      const overdueInvoices = allInvoices.filter(invoice => {
+        if (!invoice.due_date) return false;
+        const dueDate = parseISO(invoice.due_date);
+        return isBefore(dueDate, today) && invoice.invoice_status !== "paid";
+      }).length;
+
+      // Calculate conversion rate
+      const totalProposals = proposals.length;
+      const acceptedProposals = proposals.filter(p => p.status === "accepted").length;
+      const conversionRate = totalProposals > 0 
+        ? (acceptedProposals / totalProposals) * 100 
+        : 0;
+
+      // Calculate basic metrics
       const proposalsSent = proposals.length;
       const dealsClosed = proposals.filter(p => p.status === "accepted").length;
       const totalInvoiceAmount = invoices.reduce((sum, invoice) => sum + invoice.amount, 0);
@@ -60,7 +95,33 @@ export const useDashboardData = (userId: string | undefined) => {
         proposalsSent,
         dealsClosed,
         totalInvoiceAmount,
+        openProposals,
+        overdueInvoices,
+        conversionRate,
       });
+
+      // Calculate top clients by revenue
+      const clientRevenue = invoices.reduce((acc: Record<string, any>, invoice) => {
+        const contactId = invoice.contact_id;
+        if (!contactId || !invoice.contact) return acc;
+        
+        if (!acc[contactId]) {
+          acc[contactId] = {
+            name: invoice.contact.name,
+            company: invoice.contact.company,
+            revenue: 0
+          };
+        }
+        
+        acc[contactId].revenue += invoice.amount;
+        return acc;
+      }, {});
+
+      const topClientsList = Object.values(clientRevenue)
+        .sort((a: any, b: any) => b.revenue - a.revenue)
+        .slice(0, 5);
+      
+      setTopClients(topClientsList as any[]);
 
       // Prepare time-series data for charts
       prepareChartData(proposals, invoices);
@@ -116,7 +177,7 @@ export const useDashboardData = (userId: string | undefined) => {
       }
     });
 
-    // Populate proposal data with status breakdown - use actual status values from DB
+    // Populate proposal data with status breakdown
     proposals.forEach(proposal => {
       const proposalDate = parseISO(proposal.created_at);
       if (isAfter(proposalDate, startDate)) {
@@ -147,6 +208,7 @@ export const useDashboardData = (userId: string | undefined) => {
     revenueData,
     proposalData,
     period,
-    setPeriod
+    setPeriod,
+    topClients
   };
 };
