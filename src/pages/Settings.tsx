@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
@@ -98,7 +97,6 @@ const Settings = () => {
           full_name: profile.full_name,
           company: profile.company,
           phone: profile.phone,
-          updated_at: new Date().toISOString(),
         })
         .eq("id", user!.id);
 
