@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { User } from "@supabase/supabase-js";
@@ -43,10 +44,12 @@ export const useTeamMembers = (user: User | null) => {
         if (error) throw error;
         
         if (data && data.organizations) {
-          // Access the organization data correctly - organizations is a nested object from the join
+          // Access the organization data correctly - safely handle both array and object structures
           setCurrentOrg({
             id: data.org_id,
-            name: data.organizations.name, // Now this is correctly accessing the name property of the organizations object
+            name: Array.isArray(data.organizations) 
+              ? data.organizations[0]?.name 
+              : data.organizations?.name,
             userRole: data.role
           });
         }
