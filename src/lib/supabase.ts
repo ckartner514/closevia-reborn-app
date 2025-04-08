@@ -66,6 +66,16 @@ export type Deal = {
   proposal_id?: string | null;
 };
 
+// Define the Profile type
+export type Profile = {
+  id: string;
+  full_name: string;
+  company: string;
+  phone: string;
+  created_at: string;
+  updated_at?: string;
+};
+
 // For backward compatibility - use Deal as Invoice
 export type Invoice = Deal;
 

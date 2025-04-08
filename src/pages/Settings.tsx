@@ -9,11 +9,18 @@ import { Label } from "@/components/ui/label";
 import { Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
 
+// Define the Profile type
+type Profile = {
+  full_name: string;
+  company: string;
+  phone: string;
+};
+
 const Settings = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [profile, setProfile] = useState({
+  const [profile, setProfile] = useState<Profile>({
     full_name: "",
     company: "",
     phone: "",
@@ -34,8 +41,13 @@ const Settings = () => {
         .eq("id", user!.id)
         .single();
 
-      if (error && error.code !== "PGRST116") {
-        // PGRST116 is code for "not found", which might happen if profile doesn't exist yet
+      if (error) {
+        console.error("Error fetching profile:", error);
+        // If no profile exists yet, create one
+        if (error.code === "PGRST116") {
+          await createInitialProfile();
+          return;
+        }
         throw error;
       }
 
@@ -54,22 +66,41 @@ const Settings = () => {
     }
   };
 
+  const createInitialProfile = async () => {
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .insert({
+          id: user!.id,
+          full_name: "",
+          company: "",
+          phone: "",
+        });
+
+      if (error) throw error;
+      
+      // After creating, fetch it
+      fetchUserProfile();
+    } catch (error) {
+      console.error("Error creating initial profile:", error);
+      toast.error("Failed to initialize profile");
+      setLoading(false);
+    }
+  };
+
   const handleSaveProfile = async () => {
     try {
       setIsSaving(true);
       
       const { error } = await supabase
         .from("profiles")
-        .upsert(
-          {
-            id: user!.id,
-            full_name: profile.full_name,
-            company: profile.company,
-            phone: profile.phone,
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: "id" }
-        );
+        .update({
+          full_name: profile.full_name,
+          company: profile.company,
+          phone: profile.phone,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", user!.id);
 
       if (error) throw error;
       
