@@ -27,7 +27,8 @@ import { supabase } from "@/lib/supabase";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { Calendar as CalendarIcon } from "lucide-react";
+import { Calendar as CalendarIcon, Download, FileText } from "lucide-react";
+import { generateInvoicePdf } from "@/utils/pdfGenerator";
 
 type InvoiceComment = {
   id: string;
@@ -51,6 +52,7 @@ export const InvoiceDetailsDrawer = ({
   const [newComment, setNewComment] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isUpdatingDueDate, setIsUpdatingDueDate] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [dueDate, setDueDate] = useState<Date | undefined>(
     invoice?.due_date ? parseISO(invoice.due_date) : undefined
   );
@@ -163,6 +165,21 @@ export const InvoiceDetailsDrawer = ({
       setDueDate(invoice.due_date ? parseISO(invoice.due_date) : undefined);
     } finally {
       setIsUpdatingDueDate(false);
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!invoice) return;
+    
+    setIsGeneratingPdf(true);
+    try {
+      await generateInvoicePdf(invoice, comments);
+      toast.success("Invoice PDF generated successfully");
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      toast.error("Failed to generate PDF");
+    } finally {
+      setIsGeneratingPdf(false);
     }
   };
 
@@ -296,6 +313,22 @@ export const InvoiceDetailsDrawer = ({
       </div>
 
       <SheetFooter className="flex-col sm:flex-row gap-2 mt-4">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={handleDownloadPdf}
+          disabled={isGeneratingPdf}
+          className="gap-2"
+        >
+          {isGeneratingPdf ? (
+            "Generating PDF..."
+          ) : (
+            <>
+              <FileText className="h-4 w-4" />
+              Download PDF
+            </>
+          )}
+        </Button>
         <SheetClose asChild>
           <Button variant="outline" size="sm">
             Close
