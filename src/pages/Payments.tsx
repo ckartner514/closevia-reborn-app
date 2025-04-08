@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
@@ -25,7 +26,8 @@ import {
 import { 
   ArrowDownToLine, 
   Loader2,
-  DollarSign
+  DollarSign,
+  Calendar
 } from "lucide-react";
 import { 
   format, 
@@ -33,7 +35,11 @@ import {
   startOfYear,
   endOfYear,
   eachMonthOfInterval,
-  isSameMonth
+  isSameMonth,
+  subDays,
+  subMonths,
+  subYears,
+  isAfter
 } from "date-fns";
 import {
   Select,
@@ -45,6 +51,7 @@ import {
 import { InvoiceTable } from "@/components/invoices/InvoiceTable";
 import { InvoiceWithContact } from "@/components/invoices/types";
 import { toast } from "sonner";
+import { TimeRangeFilter, TimeRange } from "@/components/payments/TimeRangeFilter";
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
@@ -55,11 +62,12 @@ const PaymentsPage = () => {
   const [monthlyRevenue, setMonthlyRevenue] = useState<any[]>([]);
   const [clientRevenue, setClientRevenue] = useState<any[]>([]);
   const [yearFilter, setYearFilter] = useState<string>(new Date().getFullYear().toString());
+  const [timeRange, setTimeRange] = useState<TimeRange>("6months");
   
   useEffect(() => {
     if (!user) return;
     fetchPaidInvoices();
-  }, [user, yearFilter]);
+  }, [user, yearFilter, timeRange]);
   
   const fetchPaidInvoices = async () => {
     try {
@@ -83,9 +91,38 @@ const PaymentsPage = () => {
       console.log("Fetched paid invoices:", data);
       
       const year = parseInt(yearFilter);
+      const now = new Date();
+      let startDate: Date;
+      
+      // Determine the start date based on the selected time range
+      switch (timeRange) {
+        case "7days":
+          startDate = subDays(now, 7);
+          break;
+        case "30days":
+          startDate = subDays(now, 30);
+          break;
+        case "3months":
+          startDate = subMonths(now, 3);
+          break;
+        case "6months":
+          startDate = subMonths(now, 6);
+          break;
+        case "1year":
+          startDate = subYears(now, 1);
+          break;
+      }
+      
       const filteredInvoices = data.filter((invoice: any) => {
         const invoiceDate = parseISO(invoice.created_at);
-        return invoiceDate.getFullYear() === year;
+        
+        // First apply year filter
+        if (invoiceDate.getFullYear() !== year) {
+          return false;
+        }
+        
+        // Then apply time range filter
+        return isAfter(invoiceDate, startDate) || invoiceDate.getTime() === startDate.getTime();
       });
       
       const invoicesWithContacts = filteredInvoices.map((item: any) => ({
@@ -244,6 +281,11 @@ const PaymentsPage = () => {
         <h1 className="page-title">Payments</h1>
         
         <div className="flex items-center gap-2">
+          <TimeRangeFilter 
+            value={timeRange} 
+            onChange={setTimeRange}
+          />
+          
           <Select 
             value={yearFilter} 
             onValueChange={setYearFilter}
@@ -252,7 +294,10 @@ const PaymentsPage = () => {
               <SelectValue placeholder="Year" />
             </SelectTrigger>
             <SelectContent>
-              {yearOptions.map(year => (
+              {Array.from({ length: 5 }, (_, i) => {
+                const year = new Date().getFullYear() - i;
+                return year.toString();
+              }).map(year => (
                 <SelectItem key={year} value={year}>{year}</SelectItem>
               ))}
             </SelectContent>
@@ -338,7 +383,12 @@ const PaymentsPage = () => {
             <Card>
               <CardHeader>
                 <CardTitle>Top Clients</CardTitle>
-                <CardDescription>Revenue by client for {yearFilter}</CardDescription>
+                <CardDescription>
+                  Revenue by client for {yearFilter}
+                  {timeRange !== "1year" && ` (Last ${timeRange === "7days" ? "7 days" : 
+                    timeRange === "30days" ? "30 days" : 
+                    timeRange === "3months" ? "3 months" : "6 months"})`}
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 {clientRevenue.length === 0 ? (
@@ -377,7 +427,12 @@ const PaymentsPage = () => {
             <Card>
               <CardHeader>
                 <CardTitle>Paid Invoices</CardTitle>
-                <CardDescription>Recent payments for {yearFilter}</CardDescription>
+                <CardDescription>
+                  Recent payments for {yearFilter}
+                  {timeRange !== "1year" && ` (Last ${timeRange === "7days" ? "7 days" : 
+                    timeRange === "30days" ? "30 days" : 
+                    timeRange === "3months" ? "3 months" : "6 months"})`}
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 {paidInvoices.length === 0 ? (
@@ -405,7 +460,12 @@ const PaymentsPage = () => {
             <Card>
               <CardHeader>
                 <CardTitle>All Paid Invoices</CardTitle>
-                <CardDescription>Complete payment history for {yearFilter}</CardDescription>
+                <CardDescription>
+                  Complete payment history for {yearFilter}
+                  {timeRange !== "1year" && ` (Last ${timeRange === "7days" ? "7 days" : 
+                    timeRange === "30days" ? "30 days" : 
+                    timeRange === "3months" ? "3 months" : "6 months"})`}
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <InvoiceTable 
