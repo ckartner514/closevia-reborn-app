@@ -12,12 +12,6 @@ export type Notification = {
   type: 'proposal' | 'invoice';
 };
 
-// Simple contact type that matches the shape of data returned from Supabase
-type ContactResponse = {
-  id: string;
-  name: string;
-};
-
 export const useNotifications = () => {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -69,16 +63,13 @@ export const useNotifications = () => {
       if (invoicesError) throw invoicesError;
       
       // Process proposals to find those with past due_date
-      const proposalNotifications = (overdueProposals || [])
+      const proposalNotifications = overdueProposals
         .filter(proposal => proposal.due_date && isPast(parseISO(proposal.due_date)))
         .map(proposal => {
-          // Explicitly type the contact to ensure TypeScript understands its structure
+          // Check if contact exists and is properly structured
           let clientName = 'Unknown Client';
-          
-          if (proposal.contact) {
-            // Ensure contact is handled correctly with explicit typing
-            const contact = proposal.contact as ContactResponse;
-            clientName = contact.name || 'Unknown Client';
+          if (proposal.contact && typeof proposal.contact === 'object' && !Array.isArray(proposal.contact)) {
+            clientName = proposal.contact.name || 'Unknown Client';
           }
           
           return {
@@ -91,16 +82,13 @@ export const useNotifications = () => {
         });
       
       // Process invoices to find those with past due_date
-      const invoiceNotifications = (overdueInvoices || [])
+      const invoiceNotifications = overdueInvoices
         .filter(invoice => invoice.due_date && isPast(parseISO(invoice.due_date)))
         .map(invoice => {
-          // Explicitly type the contact to ensure TypeScript understands its structure
+          // Check if contact exists and is properly structured
           let clientName = 'Unknown Client';
-          
-          if (invoice.contact) {
-            // Ensure contact is handled correctly with explicit typing
-            const contact = invoice.contact as ContactResponse;
-            clientName = contact.name || 'Unknown Client';
+          if (invoice.contact && typeof invoice.contact === 'object' && !Array.isArray(invoice.contact)) {
+            clientName = invoice.contact.name || 'Unknown Client';
           }
           
           return {
