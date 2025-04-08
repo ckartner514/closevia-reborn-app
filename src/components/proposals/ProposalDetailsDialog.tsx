@@ -1,7 +1,6 @@
-
 import { format, parseISO } from "date-fns";
 import { useState, useEffect } from "react";
-import { CheckCircle, XCircle, FileText, Trash2 } from "lucide-react";
+import { CheckCircle, XCircle, FileText, Trash2, CalendarIcon } from "lucide-react";
 import { ProposalWithContact } from "./types";
 import { ProposalStatusBadge } from "./ProposalStatusBadge";
 import { Button } from "@/components/ui/button";
@@ -25,6 +24,13 @@ import { Label } from "@/components/ui/label";
 import ContactComments from "@/components/contacts/ContactComments";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 type ProposalComment = {
   id: string;
@@ -54,10 +60,15 @@ export const ProposalDetailsDialog = ({
   const [comments, setComments] = useState<ProposalComment[]>([]);
   const [newComment, setNewComment] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [followUpDate, setFollowUpDate] = useState<Date | undefined>(
+    proposal?.due_date ? parseISO(proposal.due_date) : undefined
+  );
+  const [isUpdatingDate, setIsUpdatingDate] = useState(false);
 
   useEffect(() => {
     if (proposal) {
       fetchComments();
+      setFollowUpDate(proposal.due_date ? parseISO(proposal.due_date) : undefined);
     }
   }, [proposal]);
 
@@ -125,6 +136,29 @@ export const ProposalDetailsDialog = ({
     } catch (error) {
       console.error("Error deleting comment:", error);
       toast.error("Failed to delete comment");
+    }
+  };
+
+  const handleDateChange = async (date: Date | undefined) => {
+    if (!proposal || isUpdatingDate) return;
+
+    try {
+      setIsUpdatingDate(true);
+      
+      const { error } = await supabase
+        .from("deals")
+        .update({ due_date: date ? date.toISOString() : null })
+        .eq("id", proposal.id);
+
+      if (error) throw error;
+      
+      setFollowUpDate(date);
+      toast.success("Follow-up date updated");
+    } catch (error) {
+      console.error("Error updating follow-up date:", error);
+      toast.error("Failed to update follow-up date");
+    } finally {
+      setIsUpdatingDate(false);
     }
   };
 
@@ -206,15 +240,37 @@ export const ProposalDetailsDialog = ({
           </div>
         </div>
 
-        {proposal.due_date && (
-          <>
-            <Separator />
-            <div>
-              <p className="text-muted-foreground text-sm">Follow-up Date</p>
-              <p>{format(parseISO(proposal.due_date), "PPP")}</p>
-            </div>
-          </>
-        )}
+        <Separator />
+
+        {/* Follow-up Date */}
+        <div>
+          <div className="flex items-center justify-between">
+            <p className="text-muted-foreground text-sm">Follow-up Date</p>
+          </div>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-full justify-start text-left font-normal mt-1",
+                  !followUpDate && "text-muted-foreground"
+                )}
+                disabled={isUpdatingDate}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {followUpDate ? format(followUpDate, "PPP") : <span>No date set</span>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={followUpDate}
+                onSelect={handleDateChange}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
 
         {proposal.notes && (
           <>
