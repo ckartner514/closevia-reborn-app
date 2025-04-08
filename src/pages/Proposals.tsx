@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from "react";
-import { supabase, Proposal, Contact } from "@/lib/supabase";
+import { useNavigate } from "react-router-dom";
+import { supabase, Contact } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { 
   Table, 
@@ -37,6 +38,7 @@ import {
   CheckCircle2, 
   FileText, 
   Loader2, 
+  PlusCircle,
   X, 
   XCircle 
 } from "lucide-react";
@@ -44,12 +46,26 @@ import { format, parseISO } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
+// Update type definition to match the database schema
+type Proposal = {
+  id: string;
+  contact_id: string;
+  title: string;
+  notes: string | null; // Changed from description to notes
+  amount: number;
+  due_date: string | null; // Changed from follow_up_date to due_date
+  status: 'open' | 'accepted' | 'refused'; // Changed status values
+  created_at: string;
+  user_id: string;
+};
+
 type ProposalWithContact = Proposal & {
   contact: Contact;
 };
 
 const ProposalsPage = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [proposals, setProposals] = useState<ProposalWithContact[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedProposal, setSelectedProposal] = useState<ProposalWithContact | null>(null);
@@ -65,8 +81,9 @@ const ProposalsPage = () => {
   const fetchProposals = async () => {
     try {
       setLoading(true);
+      // Updated to use "deals" table instead of "proposals"
       const { data, error } = await supabase
-        .from("proposals")
+        .from("deals")
         .select(`
           *,
           contact:contact_id (
@@ -77,6 +94,8 @@ const ProposalsPage = () => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
+      
+      console.log("Fetched proposals:", data);
       
       // Transform data to match our expected type
       const proposalsWithContacts = data.map((item: any) => ({
@@ -93,11 +112,11 @@ const ProposalsPage = () => {
     }
   };
 
-  const handleStatusChange = async (proposalId: string, newStatus: 'Pending' | 'Accepted' | 'Refused') => {
+  const handleStatusChange = async (proposalId: string, newStatus: 'open' | 'accepted' | 'refused') => {
     try {
       setIsUpdatingStatus(true);
       const { error } = await supabase
-        .from("proposals")
+        .from("deals") // Changed from "proposals" to "deals"
         .update({ status: newStatus })
         .eq("id", proposalId);
 
@@ -119,55 +138,15 @@ const ProposalsPage = () => {
     }
   };
 
-  const handleConvertToInvoice = async () => {
-    if (!selectedProposal) return;
-    
-    try {
-      setIsConvertingToInvoice(true);
-      
-      // First check if an invoice already exists for this proposal
-      const { data: existingInvoices, error: checkError } = await supabase
-        .from("invoices")
-        .select("*")
-        .eq("proposal_id", selectedProposal.id);
-        
-      if (checkError) throw checkError;
-      
-      if (existingInvoices && existingInvoices.length > 0) {
-        toast.error("An invoice already exists for this proposal");
-        return;
-      }
-      
-      // Create the invoice
-      const { data, error } = await supabase
-        .from("invoices")
-        .insert([
-          {
-            contact_id: selectedProposal.contact_id,
-            proposal_id: selectedProposal.id,
-            amount: selectedProposal.amount,
-            user_id: user!.id,
-          },
-        ])
-        .select();
-
-      if (error) throw error;
-      
-      toast.success("Proposal converted to invoice successfully");
-      setSelectedProposal(null);
-    } catch (error) {
-      console.error("Error converting proposal to invoice:", error);
-      toast.error("Failed to convert proposal to invoice");
-    } finally {
-      setIsConvertingToInvoice(false);
-    }
+  const handleCreateNewProposal = () => {
+    navigate("/create");
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "Accepted":
+      case "accepted":
         return "bg-green-100 text-green-800 hover:bg-green-200";
-      case "Refused":
+      case "refused":
         return "bg-red-100 text-red-800 hover:bg-red-200";
       default:
         return "bg-yellow-100 text-yellow-800 hover:bg-yellow-200";
@@ -176,9 +155,9 @@ const ProposalsPage = () => {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case "Accepted":
+      case "accepted":
         return <CheckCircle2 className="h-4 w-4 text-green-600" />;
-      case "Refused":
+      case "refused":
         return <XCircle className="h-4 w-4 text-red-600" />;
       default:
         return <FileText className="h-4 w-4 text-yellow-600" />;
@@ -205,11 +184,16 @@ const ProposalsPage = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="Pending">Pending</SelectItem>
-              <SelectItem value="Accepted">Accepted</SelectItem>
-              <SelectItem value="Refused">Refused</SelectItem>
+              <SelectItem value="open">Open</SelectItem>
+              <SelectItem value="accepted">Accepted</SelectItem>
+              <SelectItem value="refused">Refused</SelectItem>
             </SelectContent>
           </Select>
+          
+          <Button onClick={handleCreateNewProposal}>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Create Proposal
+          </Button>
         </div>
       </div>
       
@@ -223,7 +207,7 @@ const ProposalsPage = () => {
           <Button 
             variant="outline" 
             className="mt-4"
-            onClick={() => window.location.href = "/create"}
+            onClick={handleCreateNewProposal}
           >
             Create a new proposal
           </Button>
@@ -250,8 +234,8 @@ const ProposalsPage = () => {
                     ${proposal.amount.toFixed(2)}
                   </TableCell>
                   <TableCell className="hidden md:table-cell">
-                    {proposal.follow_up_date 
-                      ? format(parseISO(proposal.follow_up_date), "PP") 
+                    {proposal.due_date 
+                      ? format(parseISO(proposal.due_date), "PP") 
                       : "Not set"}
                   </TableCell>
                   <TableCell>
@@ -263,7 +247,7 @@ const ProposalsPage = () => {
                       )}
                     >
                       {getStatusIcon(proposal.status)}
-                      <span>{proposal.status}</span>
+                      <span className="capitalize">{proposal.status}</span>
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
@@ -297,7 +281,7 @@ const ProposalsPage = () => {
                                 )}
                               >
                                 {getStatusIcon(proposal.status)}
-                                <span>{proposal.status}</span>
+                                <span className="capitalize">{proposal.status}</span>
                               </Badge>
                             </div>
                             
@@ -313,20 +297,20 @@ const ProposalsPage = () => {
                               <span className="text-sm">${proposal.amount.toFixed(2)}</span>
                             </div>
                             
-                            {proposal.follow_up_date && (
+                            {proposal.due_date && (
                               <div className="flex items-center gap-2">
                                 <span className="text-sm font-medium">Follow-up:</span>
                                 <span className="text-sm">
-                                  {format(parseISO(proposal.follow_up_date), "PPP")}
+                                  {format(parseISO(proposal.due_date), "PPP")}
                                 </span>
                               </div>
                             )}
                             
-                            {proposal.description && (
+                            {proposal.notes && (
                               <div className="mt-4">
                                 <Label className="mb-2 block">Description</Label>
                                 <Textarea 
-                                  value={proposal.description}
+                                  value={proposal.notes}
                                   readOnly
                                   className="resize-none"
                                   rows={4}
@@ -343,26 +327,26 @@ const ProposalsPage = () => {
                                 size="sm"
                                 className={cn(
                                   "flex-1 gap-1",
-                                  proposal.status === "Pending" 
+                                  proposal.status === "open" 
                                     ? "border-yellow-500 bg-yellow-50" 
                                     : ""
                                 )}
-                                onClick={() => handleStatusChange(proposal.id, "Pending")}
+                                onClick={() => handleStatusChange(proposal.id, "open")}
                                 disabled={isUpdatingStatus}
                               >
                                 <FileText className="h-4 w-4" />
-                                Pending
+                                Open
                               </Button>
                               <Button
                                 variant="outline"
                                 size="sm"
                                 className={cn(
                                   "flex-1 gap-1",
-                                  proposal.status === "Accepted" 
+                                  proposal.status === "accepted" 
                                     ? "border-green-500 bg-green-50" 
                                     : ""
                                 )}
-                                onClick={() => handleStatusChange(proposal.id, "Accepted")}
+                                onClick={() => handleStatusChange(proposal.id, "accepted")}
                                 disabled={isUpdatingStatus}
                               >
                                 <Check className="h-4 w-4" />
@@ -373,11 +357,11 @@ const ProposalsPage = () => {
                                 size="sm"
                                 className={cn(
                                   "flex-1 gap-1",
-                                  proposal.status === "Refused" 
+                                  proposal.status === "refused" 
                                     ? "border-red-500 bg-red-50" 
                                     : ""
                                 )}
-                                onClick={() => handleStatusChange(proposal.id, "Refused")}
+                                onClick={() => handleStatusChange(proposal.id, "refused")}
                                 disabled={isUpdatingStatus}
                               >
                                 <X className="h-4 w-4" />
@@ -388,9 +372,12 @@ const ProposalsPage = () => {
                         </div>
                         
                         <DialogFooter>
-                          {proposal.status === "Accepted" && (
+                          {proposal.status === "accepted" && (
                             <Button
-                              onClick={handleConvertToInvoice}
+                              onClick={() => {
+                                /* Implement invoice creation later */
+                                toast.info("Invoice creation will be implemented in a future update");
+                              }}
                               disabled={isConvertingToInvoice}
                             >
                               {isConvertingToInvoice ? (

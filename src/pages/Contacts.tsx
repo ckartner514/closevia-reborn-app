@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from "react";
-import { supabase, Contact, ContactComment } from "@/lib/supabase";
+import { supabase, Contact } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { 
   Table, 
@@ -22,6 +21,14 @@ import { format, parseISO } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
+
+type ContactComment = {
+  id: string;
+  contact_id: string;
+  text: string;
+  created_at: string;
+  user_id: string;
+};
 
 const ContactsPage = () => {
   const { user } = useAuth();
@@ -55,14 +62,12 @@ const ContactsPage = () => {
     if (selectedContact) {
       fetchContactComments(selectedContact.id);
       
-      // Set last interaction date if it exists
       if (selectedContact.last_interaction) {
         setLastInteractionDate(parseISO(selectedContact.last_interaction));
       } else {
         setLastInteractionDate(undefined);
       }
       
-      // Initialize edited contact state with selected contact
       setEditedContact({
         name: selectedContact.name,
         company: selectedContact.company,
@@ -102,6 +107,7 @@ const ContactsPage = () => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
+      console.log("Fetched comments:", data);
       setContactComments(data || []);
     } catch (error) {
       console.error("Error fetching contact comments:", error);
@@ -121,7 +127,7 @@ const ContactsPage = () => {
         .insert([
           {
             contact_id: selectedContact.id,
-            comment: newComment,
+            text: newComment,
             user_id: user!.id,
           },
         ])
@@ -176,7 +182,6 @@ const ContactsPage = () => {
 
       if (error) throw error;
       
-      // Update local state
       setContacts(contacts.map(contact => 
         contact.id === selectedContact.id 
           ? { 
@@ -203,28 +208,32 @@ const ContactsPage = () => {
   };
   
   const handleCreateContact = async () => {
+    if (!newContact.name) {
+      toast.error("Contact name is required");
+      return;
+    }
+    
     try {
       setIsCreatingContact(true);
       
+      const contactData = {
+        name: newContact.name,
+        company: newContact.company || '',
+        email: newContact.email || '',
+        phone: newContact.phone || '',
+        user_id: user!.id,
+        last_interaction: new Date().toISOString().split('T')[0],
+      };
+      
       const { data, error } = await supabase
         .from("contacts")
-        .insert([
-          {
-            name: newContact.name,
-            company: newContact.company,
-            email: newContact.email,
-            phone: newContact.phone,
-            user_id: user!.id,
-          },
-        ])
+        .insert([contactData])
         .select();
 
       if (error) throw error;
       
-      // Add the new contact to the list
       setContacts([...contacts, data[0]]);
       
-      // Reset form
       setNewContact({
         name: "",
         company: "",
@@ -232,7 +241,6 @@ const ContactsPage = () => {
         phone: "",
       });
       
-      // Close dialog
       setNewContactOpen(false);
       
       toast.success("Contact created successfully");
@@ -248,9 +256,9 @@ const ContactsPage = () => {
     const searchLower = searchQuery.toLowerCase();
     return (
       contact.name.toLowerCase().includes(searchLower) ||
-      contact.company.toLowerCase().includes(searchLower) ||
-      contact.email.toLowerCase().includes(searchLower) ||
-      contact.phone.toLowerCase().includes(searchLower)
+      (contact.company && contact.company.toLowerCase().includes(searchLower)) ||
+      (contact.email && contact.email.toLowerCase().includes(searchLower)) ||
+      (contact.phone && contact.phone.toLowerCase().includes(searchLower))
     );
   });
 
@@ -353,7 +361,7 @@ const ContactsPage = () => {
             contactComments.map((comment) => (
               <div key={comment.id} className="border rounded-md p-3 bg-background">
                 <div className="flex justify-between items-start">
-                  <p className="whitespace-pre-wrap">{comment.comment}</p>
+                  <p className="whitespace-pre-wrap">{comment.text}</p>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -497,7 +505,6 @@ const ContactsPage = () => {
             </TableHeader>
             <TableBody>
               {filteredContacts.map((contact) => {
-                // Row click handler
                 const handleRowClick = () => {
                   setSelectedContact(contact);
                   if (isMobile) {
@@ -528,7 +535,6 @@ const ContactsPage = () => {
         </div>
       )}
       
-      {/* Contact Detail View - Desktop */}
       {selectedContact && !isMobile && (
         <Dialog open={!!selectedContact} onOpenChange={(open) => !open && setSelectedContact(null)}>
           <DialogContent className="sm:max-w-[600px]">
@@ -540,7 +546,6 @@ const ContactsPage = () => {
         </Dialog>
       )}
       
-      {/* Contact Detail View - Mobile */}
       {isMobile && (
         <Drawer open={contactDrawerOpen} onOpenChange={setContactDrawerOpen}>
           <DrawerContent>
