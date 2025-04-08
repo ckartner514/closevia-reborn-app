@@ -112,7 +112,7 @@ export function Header({ collapsed, setCollapsed }: HeaderProps) {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center gap-2 px-2">
-                <Avatar className="h-8 w-8 bg-slate-200 text-slate-700 border border-slate-300">
+                <Avatar className="h-8 w-8 bg-slate-400 text-slate-100 border border-slate-300">
                   <AvatarFallback>{getInitials()}</AvatarFallback>
                 </Avatar>
                 <span className="hidden font-medium text-sm md:inline-block">
