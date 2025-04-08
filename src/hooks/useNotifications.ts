@@ -1,102 +1,67 @@
 
-import { useState, useEffect } from "react";
-import { useAuth } from "@/contexts/AuthContext";
-import { format, isPast, parseISO } from "date-fns";
+import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { Contact, Deal } from "@/types";
 
-export type Notification = {
+export interface NotificationItem {
   id: string;
   title: string;
-  client: string;
-  date: string;
-  type: 'proposal' | 'invoice';
-};
+  due_date: string;
+  contact: {
+    id: string;
+    name: string;
+  };
+  type: "invoice" | "proposal";
+}
 
 export const useNotifications = () => {
-  const { user } = useAuth();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
 
   useEffect(() => {
-    if (!user) return;
-    fetchNotifications();
-  }, [user]);
+    const fetchNotifications = async () => {
+      const today = new Date().toISOString().split("T")[0];
 
-  const fetchNotifications = async () => {
-    try {
-      setLoading(true);
-      
-      // Fetch all proposals that are still open and have a past follow-up date
+      // Fetch overdue proposals
       const { data: overdueProposals, error: proposalsError } = await supabase
         .from("deals")
-        .select(`
-          id, 
-          title, 
-          due_date,
-          contact:contact_id (
-            id, name
-          )
-        `)
-        .eq("user_id", user!.id)
-        .eq("status", "open")
-        .not("due_date", "is", null)
-        .neq("status", "invoice");
-      
-      if (proposalsError) throw proposalsError;
-      
-      // Fetch all invoices that are pending and have a past due date
-      const { data: overdueInvoices, error: invoicesError } = await supabase
+        .select("id, title, due_date, contact(id, name)")
+        .eq("status", "proposal")
+        .lt("due_date", today);
+
+      // Fetch unpaid & overdue invoices
+      const { data: unpaidInvoices, error: invoicesError } = await supabase
         .from("deals")
-        .select(`
-          id, 
-          title, 
-          due_date,
-          contact:contact_id (
-            id, name
-          )
-        `)
-        .eq("user_id", user!.id)
+        .select("id, title, due_date, contact(id, name)")
         .eq("status", "invoice")
         .eq("invoice_status", "pending")
-        .not("due_date", "is", null);
-      
-      if (invoicesError) throw invoicesError;
-      
-      // Process proposals to find those with past due_date
-      const proposalNotifications = overdueProposals
-        .filter(proposal => proposal.due_date && isPast(parseISO(proposal.due_date)))
-        .map(proposal => ({
-          id: proposal.id,
-          title: proposal.title,
-          client: proposal.contact?.name || 'Unknown Client',
-          date: proposal.due_date ? format(parseISO(proposal.due_date), 'PP') : 'Unknown',
-          type: 'proposal' as const
-        }));
-      
-      // Process invoices to find those with past due_date
-      const invoiceNotifications = overdueInvoices
-        .filter(invoice => invoice.due_date && isPast(parseISO(invoice.due_date)))
-        .map(invoice => ({
-          id: invoice.id,
-          title: invoice.title,
-          client: invoice.contact?.name || 'Unknown Client',
-          date: invoice.due_date ? format(parseISO(invoice.due_date), 'PP') : 'Unknown',
-          type: 'invoice' as const
-        }));
-      
-      // Combine all notifications
-      setNotifications([...proposalNotifications, ...invoiceNotifications]);
-      
-    } catch (error) {
-      console.error("Error fetching notifications:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+        .lt("due_date", today);
 
-  return {
-    notifications,
-    loading,
-    refreshNotifications: fetchNotifications
-  };
+      if (proposalsError || invoicesError) {
+        console.error("Error fetching notifications:", proposalsError || invoicesError);
+        return;
+      }
+
+      const proposalNotifications = (overdueProposals ?? []).map((deal) => ({
+        id: deal.id,
+        title: deal.title,
+        due_date: deal.due_date,
+        contact: deal.contact as { id: string; name: string },
+        type: "proposal" as const,
+      }));
+
+      const invoiceNotifications = (unpaidInvoices ?? []).map((deal) => ({
+        id: deal.id,
+        title: deal.title,
+        due_date: deal.due_date,
+        contact: deal.contact as { id: string; name: string },
+        type: "invoice" as const,
+      }));
+
+      setNotifications([...proposalNotifications, ...invoiceNotifications]);
+    };
+
+    fetchNotifications();
+  }, []);
+
+  return notifications;
 };
