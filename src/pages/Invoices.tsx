@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
@@ -157,11 +158,26 @@ const InvoicesPage = () => {
 
   const handleStatusChange = async (invoiceId: string, newStatus: string) => {
     await updateInvoiceStatus(invoiceId, newStatus);
+    // Update the invoice in the UI after status change
+    if (selectedInvoice && selectedInvoice.id === invoiceId) {
+      setSelectedInvoice({
+        ...selectedInvoice,
+        invoice_status: newStatus
+      });
+    }
   };
 
   const handleSelectInvoice = (invoice: InvoiceWithContact) => {
     setSelectedInvoice(invoice);
     setDrawerOpen(true);
+  };
+
+  const handleDrawerOpenChange = (open: boolean) => {
+    setDrawerOpen(open);
+    if (!open) {
+      // Refetch invoices when drawer is closed to ensure UI is updated
+      fetchInvoices();
+    }
   };
 
   const filteredInvoices = invoices.filter(invoice => {
@@ -236,10 +252,10 @@ const InvoicesPage = () => {
         <InvoiceEmptyState loading={loading} hasFilters={hasFilters} />
       )}
 
-      <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
+      <Sheet open={drawerOpen} onOpenChange={handleDrawerOpenChange}>
         <InvoiceDetailsDrawer 
           invoice={selectedInvoice} 
-          onStatusChange={updateInvoiceStatus}
+          onStatusChange={handleStatusChange}
         />
       </Sheet>
 

@@ -24,6 +24,10 @@ import {
 import { toast } from "sonner";
 import ContactComments from "@/components/contacts/ContactComments";
 import { supabase } from "@/lib/supabase";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { Calendar as CalendarIcon } from "lucide-react";
 
 type InvoiceComment = {
   id: string;
@@ -46,10 +50,16 @@ export const InvoiceDetailsDrawer = ({
   const [comments, setComments] = useState<InvoiceComment[]>([]);
   const [newComment, setNewComment] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isUpdatingDueDate, setIsUpdatingDueDate] = useState(false);
+  const [dueDate, setDueDate] = useState<Date | undefined>(
+    invoice?.due_date ? parseISO(invoice.due_date) : undefined
+  );
 
   useEffect(() => {
     if (invoice) {
       fetchComments();
+      setDueDate(invoice.due_date ? parseISO(invoice.due_date) : undefined);
+      setStatus(invoice.invoice_status || "pending");
     }
   }, [invoice]);
 
@@ -120,6 +130,42 @@ export const InvoiceDetailsDrawer = ({
     }
   };
 
+  const handleStatusChange = async (newStatus: string) => {
+    if (onStatusChange) {
+      await onStatusChange(invoice!.id, newStatus);
+      setStatus(newStatus);
+    }
+  };
+
+  const handleDueDateChange = async (date: Date | undefined) => {
+    if (!invoice || !date) return;
+    
+    setIsUpdatingDueDate(true);
+    try {
+      // Clear any existing notifications in localStorage that might be related to this invoice
+      const deletedNotifications = JSON.parse(localStorage.getItem('deletedNotifications') || '{}');
+      deletedNotifications[invoice.id] = false; // Remove any deletion record to allow new notifications
+      localStorage.setItem('deletedNotifications', JSON.stringify(deletedNotifications));
+
+      // Update the due date in the database
+      const { error } = await supabase
+        .from("deals")
+        .update({ due_date: date.toISOString().split('T')[0] })
+        .eq("id", invoice.id);
+
+      if (error) throw error;
+      
+      setDueDate(date);
+      toast.success("Due date updated");
+    } catch (error) {
+      console.error("Error updating due date:", error);
+      toast.error("Failed to update due date");
+      setDueDate(invoice.due_date ? parseISO(invoice.due_date) : undefined);
+    } finally {
+      setIsUpdatingDueDate(false);
+    }
+  };
+
   if (!invoice) return null;
 
   const formatCurrency = (amount: number) => {
@@ -139,13 +185,6 @@ export const InvoiceDetailsDrawer = ({
         return <Badge className="bg-red-500">Overdue</Badge>;
       default:
         return <Badge className="bg-gray-500">{status}</Badge>;
-    }
-  };
-
-  const handleStatusChange = async (newStatus: string) => {
-    if (onStatusChange) {
-      await onStatusChange(invoice.id, newStatus);
-      setStatus(newStatus);
     }
   };
 
@@ -201,15 +240,38 @@ export const InvoiceDetailsDrawer = ({
           </div>
         </div>
 
-        {invoice.due_date && (
-          <>
-            <Separator />
-            <div>
-              <p className="text-muted-foreground text-sm">Due Date</p>
-              <p>{format(parseISO(invoice.due_date), "PPP")}</p>
-            </div>
-          </>
-        )}
+        <Separator />
+        
+        <div>
+          <p className="text-muted-foreground text-sm mb-2">Due Date</p>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button 
+                variant="outline" 
+                className={cn(
+                  "w-full justify-start text-left font-normal",
+                  !dueDate && "text-muted-foreground"
+                )}
+                disabled={isUpdatingDueDate}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {dueDate ? format(dueDate, "PPP") : "Set due date"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={dueDate}
+                onSelect={(date) => {
+                  setDueDate(date);
+                  handleDueDateChange(date);
+                }}
+                initialFocus
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
 
         {invoice.notes && (
           <>
