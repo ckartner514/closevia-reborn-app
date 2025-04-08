@@ -12,14 +12,26 @@ import {
   DrawerClose,
 } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useState } from "react";
 
 interface InvoiceDetailsDrawerProps {
   invoice: InvoiceWithContact | null;
+  onStatusChange?: (invoiceId: string, newStatus: string) => Promise<void>;
 }
 
 export const InvoiceDetailsDrawer = ({
-  invoice
+  invoice,
+  onStatusChange
 }: InvoiceDetailsDrawerProps) => {
+  const [status, setStatus] = useState<string>(invoice?.invoice_status || "pending");
+
   if (!invoice) return null;
 
   const formatCurrency = (amount: number) => {
@@ -42,24 +54,47 @@ export const InvoiceDetailsDrawer = ({
     }
   };
 
+  const handleStatusChange = async (newStatus: string) => {
+    if (onStatusChange) {
+      await onStatusChange(invoice.id, newStatus);
+      setStatus(newStatus);
+    }
+  };
+
   return (
-    <DrawerContent className="max-w-lg mx-auto">
+    <DrawerContent className="h-[85vh] max-w-md mx-auto">
       <DrawerHeader>
         <DrawerTitle className="flex items-center justify-between">
           <span>Invoice Details</span>
-          {getStatusBadge(invoice.invoice_status)}
+          {getStatusBadge(status)}
         </DrawerTitle>
         <DrawerDescription>
           Created on {format(parseISO(invoice.created_at), "PPP")}
         </DrawerDescription>
       </DrawerHeader>
 
-      <div className="px-4 space-y-4">
+      <div className="px-4 space-y-4 overflow-y-auto">
         <div>
           <h3 className="text-lg font-semibold">{invoice.title}</h3>
           <p className="text-sm text-muted-foreground">
             Amount: {formatCurrency(invoice.amount)}
           </p>
+        </div>
+
+        <Separator />
+
+        <div>
+          <label className="text-sm font-medium">Status</label>
+          <Select value={status} onValueChange={handleStatusChange}>
+            <SelectTrigger className="w-full mt-1">
+              <SelectValue placeholder="Select status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="paid">Paid</SelectItem>
+              <SelectItem value="overdue">Overdue</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <Separator />

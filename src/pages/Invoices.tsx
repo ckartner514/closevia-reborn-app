@@ -53,7 +53,6 @@ const InvoicesPage = () => {
   const [selectedInvoice, setSelectedInvoice] = useState<InvoiceWithContact | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   
-  // Handle URL query parameters for highlighting specific invoices
   useEffect(() => {
     const query = new URLSearchParams(location.search);
     const invoiceId = query.get('highlightInvoice');
@@ -61,13 +60,11 @@ const InvoicesPage = () => {
     if (invoiceId) {
       setHighlightedInvoiceId(invoiceId);
       
-      // Scroll to highlighted invoice after a short delay to ensure it's rendered
       setTimeout(() => {
         const invoiceElement = document.getElementById(`invoice-${invoiceId}`);
         if (invoiceElement) {
           invoiceElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
           
-          // Add highlight effect
           invoiceElement.classList.add('bg-accent');
           setTimeout(() => {
             invoiceElement.classList.remove('bg-accent');
@@ -75,7 +72,6 @@ const InvoicesPage = () => {
           }, 100);
         }
         
-        // Clear the highlight after navigating
         window.history.replaceState({}, document.title, '/invoices');
       }, 500);
     }
@@ -241,7 +237,10 @@ const InvoicesPage = () => {
       )}
 
       <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
-        <InvoiceDetailsDrawer invoice={selectedInvoice} />
+        <InvoiceDetailsDrawer 
+          invoice={selectedInvoice} 
+          onStatusChange={updateInvoiceStatus}
+        />
       </Drawer>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
